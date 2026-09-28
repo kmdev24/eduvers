@@ -64,6 +64,8 @@ return [
             ? base_path(ltrim(env('DB_SSL_CA'), '/')) 
             : (file_exists(storage_path('certs/tidb-ca.pem')) ? storage_path('certs/tidb-ca.pem') : null),
         PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+        PDO::MYSQL_ATTR_SSL_KEY => null,
+        PDO::MYSQL_ATTR_SSL_CERT => null,
     ]) : [],
 ],
 
