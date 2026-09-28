@@ -49,3 +49,7 @@ Thumbs.db
 
 # Local Docker overrides
 docker-compose.override.yml
+
+
+!storage/certs/
+!storage/certs/tidb-ca.pem
