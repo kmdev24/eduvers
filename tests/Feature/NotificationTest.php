@@ -406,11 +406,35 @@ class NotificationTest extends TestCase
         $this->get(route('notifications.index', ['filter' => 'unread']))
             ->assertOk()->assertSee('Lesson body about loops.')->assertDontSee('Lesson body about arrays.');
 
-        $this->getJson(route('notifications.count'))->assertExactJson(['unread' => 1]);
+        $this->getJson(route('notifications.count'))->assertJsonPath('unread', 1);
 
         $this->from(route('notifications.index'))->post(route('notifications.read-all'))
             ->assertRedirect(route('notifications.index'));
-        $this->getJson(route('notifications.count'))->assertExactJson(['unread' => 0]);
+        $this->getJson(route('notifications.count'))->assertJsonPath('unread', 0);
+    }
+
+    public function test_bell_polling_reports_the_newest_notification_and_serves_a_fresh_dropdown(): void
+    {
+        $this->actingAs($this->studentA1)->getJson(route('notifications.count'))
+            ->assertExactJson(['unread' => 0, 'latest' => null]);
+
+        // A teacher posts while the student's page is open
+        app(StudentNotifier::class)->lessonPosted($this->makeLesson('Recursion'));
+        $notification = $this->studentA1->notifications()->first();
+
+        $this->getJson(route('notifications.count'))
+            ->assertJsonPath('unread', 1)
+            ->assertJsonPath('latest.id', $notification->id)
+            ->assertJsonPath('latest.unread', true)
+            ->assertJsonPath('latest.title', 'Recursion')
+            ->assertJsonPath('latest.headline', 'New lesson in ICT-PROG1')
+            ->assertJsonPath('latest.url', route('notifications.open', $notification->id));
+
+        $this->get(route('notifications.dropdown'))
+            ->assertOk()
+            ->assertSee('1 unread')
+            ->assertSee('Recursion')
+            ->assertDontSee('<html', false); // just the dropdown, not a whole page
     }
 
     public function test_marking_one_notification_read(): void

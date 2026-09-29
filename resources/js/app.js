@@ -182,29 +182,76 @@ document.querySelectorAll('[data-dropdown]').forEach((root) => {
     });
 });
 
-// Notification bell: refresh the unread badge every N seconds while the tab is visible
+// Notification bell: check for new notifications every N seconds while the tab is visible
+// (and right away when the student comes back to the tab/app). On a new one: update the
+// badge, refresh the dropdown and show a toast. No page reload needed.
 document.querySelectorAll('[data-notification-bell]').forEach((bell) => {
-    const url = bell.dataset.countUrl;
+    const countUrl = bell.dataset.countUrl;
+    const dropdownUrl = bell.dataset.dropdownUrl;
     const badge = bell.querySelector('[data-notification-badge]');
-    const seconds = Number(bell.dataset.pollSeconds) || 60;
-    if (!url || !badge) return;
+    const list = bell.querySelector('[data-notification-list]');
+    const toasts = document.querySelector('[data-notification-toasts]');
+    const seconds = Number(bell.dataset.pollSeconds) || 15;
+    let latestId = bell.dataset.latestId || '';
+    let busy = false;
+    if (!countUrl || !badge) return;
+
+    const headers = { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+
+    const setBadge = (unread) => {
+        badge.textContent = unread > 9 ? '9+' : String(unread);
+        badge.classList.toggle('hidden', !unread);
+    };
+
+    const showToast = (item) => {
+        if (!toasts) return;
+        const toast = document.createElement('a');
+        toast.href = item.url;
+        toast.className = 'pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-gold-300 bg-white p-4 shadow-elevated ring-1 ring-gold-200 transition duration-300 sm:w-96';
+        const dot = document.createElement('span');
+        dot.className = 'mt-1 size-2.5 shrink-0 rounded-full bg-gold-500 ring-4 ring-gold-100';
+        const body = document.createElement('span');
+        body.className = 'min-w-0 flex-1';
+        const headline = document.createElement('span');
+        headline.className = 'block text-[11px] font-semibold uppercase tracking-wide text-champagne-dark';
+        headline.textContent = item.headline;
+        const title = document.createElement('span');
+        title.className = 'block truncate text-sm font-semibold text-ink-900';
+        title.textContent = item.title;
+        body.append(headline, title);
+        toast.append(dot, body);
+        toasts.append(toast);
+        setTimeout(() => toast.classList.add('opacity-0'), 7000);
+        setTimeout(() => toast.remove(), 7400);
+    };
 
     const refresh = async () => {
-        if (document.hidden) return;
+        if (document.hidden || busy) return;
+        busy = true;
         try {
-            const res = await fetch(url, {
-                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                credentials: 'same-origin',
-            });
-            if (!res.ok) return;
-            const { unread } = await res.json();
-            badge.textContent = unread > 9 ? '9+' : String(unread);
-            badge.classList.toggle('hidden', !unread);
+            const res = await fetch(countUrl, { headers, credentials: 'same-origin', cache: 'no-store' });
+            if (!res.ok || !(res.headers.get('content-type') || '').includes('json')) return;
+            const { unread, latest } = await res.json();
+            setBadge(unread);
+
+            const newId = latest?.id || '';
+            if (newId && newId !== latestId) {
+                latestId = newId;
+                if (latest.unread) showToast(latest);
+                if (list && dropdownUrl) {
+                    const html = await fetch(dropdownUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin', cache: 'no-store' });
+                    if (html.ok) list.innerHTML = await html.text();
+                }
+            }
         } catch {
-            // Offline or signed out — keep the last known count
+            // Offline or signed out — try again next time
+        } finally {
+            busy = false;
         }
     };
 
     setInterval(refresh, seconds * 1000);
     document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
+    window.addEventListener('pageshow', (e) => e.persisted && refresh());
 });

@@ -58,9 +58,35 @@ class NotificationController extends Controller
         return back()->with('status', 'All notifications marked as read.');
     }
 
-    /** Unread count for the header bell (polled by app.js). */
+    /**
+     * Polled by the header bell (app.js): unread count plus the newest notification,
+     * so the page can show a toast and refresh the dropdown when something new arrives.
+     */
     public function count(Request $request): JsonResponse
     {
-        return response()->json(['unread' => $request->user()->unreadNotifications()->count()]);
+        $user   = $request->user();
+        $latest = $user->notifications()->first();
+
+        return response()->json([
+            'unread' => $user->unreadNotifications()->count(),
+            'latest' => $latest ? [
+                'id'       => $latest->id,
+                'unread'   => $latest->read_at === null,
+                'headline' => $latest->data['headline'] ?? 'New notification',
+                'title'    => $latest->data['title'] ?? '',
+                'url'      => route('notifications.open', $latest->id),
+            ] : null,
+        ]);
+    }
+
+    /** Fresh inside of the bell dropdown (HTML), fetched when a new notification arrives. */
+    public function dropdown(Request $request): View
+    {
+        $user = $request->user();
+
+        return view('notifications._dropdown', [
+            'unread' => $user->unreadNotifications()->count(),
+            'recent' => $user->notifications()->take(6)->get(),
+        ]);
     }
 }
