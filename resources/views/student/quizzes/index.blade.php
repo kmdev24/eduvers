@@ -15,7 +15,7 @@
                             <p class="text-xs font-semibold uppercase tracking-wider text-champagne-dark">{{ $quiz->subject->code }} · {{ $quiz->subject->name }}</p>
                             <h3 class="mt-2 font-serif text-xl font-semibold leading-snug text-ink-900">{{ $quiz->title }}</h3>
                             @if ($quiz->description)
-                                <p class="mt-2 line-clamp-2 text-sm text-slate-500">{{ $quiz->description }}</p>
+                                <p class="mt-2 text-sm text-slate-500">{{ $quiz->description }}</p>
                             @endif
                             <div class="mt-auto flex items-center justify-between pt-5">
                                 <span class="text-xs text-slate-500">{{ $quiz->questions_count }} questions · pass {{ $quiz->passing_score }}%</span>
@@ -39,7 +39,7 @@
                     <li>
                         <a href="{{ route('student.quizzes.show', $quiz) }}" class="flex items-center gap-3 px-6 py-4 transition hover:bg-ivory-50">
                             <div class="min-w-0 flex-1">
-                                <p class="truncate font-medium text-ink-900">{{ $quiz->title }}</p>
+                                <p class="font-medium text-ink-900">{{ $quiz->title }}</p>
                                 <p class="text-xs text-slate-500">{{ $quiz->subject->code }} · {{ $sub->created_at?->format('M j') }}</p>
                             </div>
                             <span class="{{ $sub->passed ? 'badge-gold' : 'badge-slate' }} tabular-nums">{{ $sub->percent() }}%</span>

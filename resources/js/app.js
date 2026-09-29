@@ -89,33 +89,94 @@ document.querySelectorAll('[data-audience-select]').forEach((select) => {
     sync();
 });
 
-// Live header clock in the school's timezone (Asia/Manila), 12-hour with AM/PM
+// Live header clock in the school's timezone (Asia/Manila), 12-hour with AM/PM.
+// Nothing is ever cut off: if the date and time don't fit side by side (phones, narrow
+// tablets, a crowded header) they take turns every few seconds (data-clock-rotate="5"),
+// and the date/time switch to shorter forms until they fit.
 document.querySelectorAll('[data-live-clock]').forEach((clock) => {
     const timeZone = clock.dataset.timezone || 'Asia/Manila';
     const dateEl = clock.querySelector('[data-clock-date]');
     const timeEl = clock.querySelector('[data-clock-time] time');
+    const zoneEl = clock.querySelector('[data-clock-zone]');
 
-    const dateFormat = new Intl.DateTimeFormat('en-US', {
-        timeZone, weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-    });
-    const timeFormat = new Intl.DateTimeFormat('en-US', {
-        timeZone, hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true,
-    });
+    // Longest first: "Tuesday, September 29, 2026" → "Tue, Sep 29, 2026" → "Sep 29, 2026"
+    const dateFormats = [
+        { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' },
+        { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' },
+        { month: 'short', day: 'numeric', year: 'numeric' },
+    ].map((o) => new Intl.DateTimeFormat('en-US', { timeZone, ...o }));
+    const timeFormat = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+
+    // Invisible copy of the clock, used to measure text without touching the real one
+    const probe = clock.cloneNode(true);
+    probe.removeAttribute('data-live-clock');
+    ['clockShow', 'clockFit', 'clockRotate', 'timezone'].forEach((k) => delete probe.dataset[k]);
+    probe.setAttribute('aria-hidden', 'true');
+    probe.classList.remove('truncate');
+    Object.assign(probe.style, { position: 'absolute', left: '-9999px', top: '0', width: 'auto', maxWidth: 'none', whiteSpace: 'nowrap', visibility: 'hidden', pointerEvents: 'none' });
+    document.body.append(probe);
+    const p = {
+        date: probe.querySelector('[data-clock-date]'),
+        sep: probe.querySelector('[data-clock-sep]'),
+        time: probe.querySelector('[data-clock-time]'),
+        timeText: probe.querySelector('[data-clock-time] time'),
+        zone: probe.querySelector('[data-clock-zone]'),
+    };
+    const show = (el, on) => el && (el.style.display = on ? '' : 'none');
+    const measure = ({ date = true, sep = true, time = true, zone = true }) => {
+        show(p.date, date); show(p.sep, sep); show(p.time, time); show(p.zone, zone);
+        return probe.scrollWidth;
+    };
+
+    let layout = { fit: 'both', dateLevel: 0, zone: true };
+    let lastKey = '';
+
+    const choose = (now) => {
+        const available = clock.clientWidth;
+        const time = timeFormat.format(now);
+        const key = `${available}|${dateFormats[0].format(now)}|${time.length}`;
+        if (key === lastKey || !available) return;
+        lastKey = key;
+
+        p.timeText.textContent = time;
+        const fits = (w) => w <= available;
+
+        // 1. Full date and time side by side, with shorter dates if needed
+        for (let level = 0; level < dateFormats.length; level++) {
+            p.date.textContent = dateFormats[level].format(now);
+            if (fits(measure({}))) { layout = { fit: 'both', dateLevel: level, zone: true }; return; }
+            if (level === 0) continue;
+        }
+        // 2. Take turns: the longest date that fits alone, and the time (with "PHT" if it fits)
+        let dateLevel = dateFormats.length - 1;
+        for (let level = 0; level < dateFormats.length; level++) {
+            p.date.textContent = dateFormats[level].format(now);
+            if (fits(measure({ sep: false, time: false }))) { dateLevel = level; break; }
+        }
+        const zone = fits(measure({ date: false, sep: false }));
+        layout = { fit: 'rotate', dateLevel, zone };
+    };
 
     const tick = () => {
         const now = new Date();
-        if (dateEl) dateEl.textContent = dateFormat.format(now);
+        choose(now);
+        clock.dataset.clockFit = layout.fit;
+        if (dateEl) dateEl.textContent = dateFormats[layout.dateLevel].format(now);
         if (timeEl) timeEl.textContent = timeFormat.format(now);
+        if (zoneEl) zoneEl.hidden = !layout.zone;
     };
 
     tick();
     setInterval(tick, 1000);
+    const refit = () => { lastKey = ''; tick(); };
+    window.addEventListener('resize', refit);
+    document.fonts?.ready.then(refit);
 
-    // Phones: take turns showing the date and the time every N seconds
-    // (data-clock-rotate="5"). CSS hides the inactive one below the sm breakpoint.
+    // Take turns between date and time when they don't fit together
     const seconds = Number(clock.dataset.clockRotate) || 0;
     if (seconds > 0) {
         setInterval(() => {
+            if (clock.dataset.clockFit !== 'rotate') return;
             clock.dataset.clockShow = clock.dataset.clockShow === 'date' ? 'time' : 'date';
         }, seconds * 1000);
     }
@@ -216,7 +277,7 @@ document.querySelectorAll('[data-notification-bell]').forEach((bell) => {
         headline.className = 'block text-[11px] font-semibold uppercase tracking-wide text-champagne-dark';
         headline.textContent = item.headline;
         const title = document.createElement('span');
-        title.className = 'block truncate text-sm font-semibold text-ink-900';
+        title.className = 'block text-sm font-semibold text-ink-900';
         title.textContent = item.title;
         body.append(headline, title);
         toast.append(dot, body);

@@ -147,7 +147,7 @@
                                 <x-icon name="clipboard" class="size-5" />
                             </span>
                             <div class="min-w-0 flex-1">
-                                <a href="{{ route('lessons.attachment', $lesson) }}" class="block truncate text-sm font-medium text-ink-900 hover:text-gold-700">{{ $lesson->original_filename }}</a>
+                                <a href="{{ route('lessons.attachment', $lesson) }}" class="block text-sm font-medium text-ink-900 hover:text-gold-700">{{ $lesson->original_filename }}</a>
                                 <p class="text-xs text-slate-500">{{ $lesson->attachmentSize() }}</p>
                             </div>
                         </div>

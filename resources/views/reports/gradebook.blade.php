@@ -28,6 +28,7 @@
             {{ $students->isEmpty() ? 'No students in this section.' : 'No quizzes published to this section yet.' }}
         </p>
     @else
+        <div class="overflow-x-auto">
         <table class="w-full border-collapse text-xs">
             <thead>
                 <tr class="bg-ink-900 text-ivory">
@@ -60,6 +61,7 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
 
         {{-- Quiz legend --}}
         <div class="mt-6">

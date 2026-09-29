@@ -30,9 +30,9 @@
 
     <span class="min-w-0 flex-1">
         <span class="block text-[11px] font-semibold uppercase tracking-wide text-champagne-dark">{{ $data['headline'] ?? 'Update' }}</span>
-        <span @class(['block text-sm text-ink-900', 'truncate' => $compact, 'font-semibold' => $unread, 'font-medium' => ! $unread])>{{ $data['title'] ?? '' }}</span>
+        <span @class(['block text-sm text-ink-900', 'font-semibold' => $unread, 'font-medium' => ! $unread])>{{ $data['title'] ?? '' }}</span>
         @if (! $compact && filled($data['excerpt'] ?? null))
-            <span class="mt-0.5 line-clamp-2 block text-sm text-slate-500">{{ $data['excerpt'] }}</span>
+            <span class="mt-0.5 block text-sm text-slate-500">{{ $data['excerpt'] }}</span>
         @endif
         <span class="mt-1 block text-xs text-slate-400">
             @if (filled($data['author'] ?? null)){{ $data['author'] }} · @endif

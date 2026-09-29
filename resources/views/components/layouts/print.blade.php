@@ -36,7 +36,7 @@
     </div>
 
     <main @class([
-        'mx-auto my-8 bg-white p-10 shadow-elevated print:m-0 print:max-w-none print:p-0 print:shadow-none',
+        'mx-auto my-4 bg-white p-4 shadow-elevated sm:my-8 sm:p-10 print:m-0 print:max-w-none print:p-0 print:shadow-none',
         'max-w-[297mm]' => $orientation === 'landscape',
         'max-w-[210mm]' => $orientation !== 'landscape',
     ])>

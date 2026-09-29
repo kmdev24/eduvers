@@ -7,7 +7,7 @@
                 {{ strtoupper(pathinfo($lesson->original_filename ?? $lesson->file_path, PATHINFO_EXTENSION)) ?: 'FILE' }}
             </span>
             <div class="min-w-0">
-                <p class="truncate font-medium text-ink-900" title="{{ $lesson->original_filename }}">{{ $lesson->original_filename }}</p>
+                <p class="font-medium text-ink-900" title="{{ $lesson->original_filename }}">{{ $lesson->original_filename }}</p>
                 <p class="text-xs text-slate-500">{{ $lesson->attachmentSize() }}</p>
             </div>
         </div>

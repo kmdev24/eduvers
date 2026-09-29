@@ -79,7 +79,7 @@
                                 <th class="sticky left-0 z-10 bg-white px-6 py-3">Student</th>
                                 @foreach ($quizzes as $quiz)
                                     <th class="min-w-28 px-4 py-3 text-center">
-                                        <a href="{{ route('teacher.quizzes.edit', $quiz) }}" class="block truncate normal-case tracking-normal text-ink-800 hover:text-gold-700" title="{{ $quiz->title }}">{{ \Illuminate\Support\Str::limit($quiz->title, 18) }}</a>
+                                        <a href="{{ route('teacher.quizzes.edit', $quiz) }}" class="block normal-case tracking-normal text-ink-800 hover:text-gold-700">{{ $quiz->title }}</a>
                                         <span class="font-normal normal-case tracking-normal text-slate-400">pass {{ $quiz->passing_score }}%</span>
                                     </th>
                                 @endforeach

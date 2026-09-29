@@ -34,7 +34,7 @@
                         @if ($previous)
                             <a href="{{ route('student.lessons.show', $previous->id) }}" class="group block rounded-xl border border-ivory-300 p-4 transition hover:border-gold-300">
                                 <span class="text-xs text-slate-400">← Previous</span>
-                                <span class="mt-1 block truncate font-medium text-ink-900 group-hover:text-gold-800">{{ $previous->title }}</span>
+                                <span class="mt-1 block font-medium text-ink-900 group-hover:text-gold-800">{{ $previous->title }}</span>
                             </a>
                         @endif
                     </div>
@@ -42,7 +42,7 @@
                         @if ($next)
                             <a href="{{ route('student.lessons.show', $next->id) }}" class="group block rounded-xl border border-ivory-300 p-4 text-right transition hover:border-gold-300">
                                 <span class="text-xs text-slate-400">Next →</span>
-                                <span class="mt-1 block truncate font-medium text-ink-900 group-hover:text-gold-800">{{ $next->title }}</span>
+                                <span class="mt-1 block font-medium text-ink-900 group-hover:text-gold-800">{{ $next->title }}</span>
                             </a>
                         @endif
                     </div>

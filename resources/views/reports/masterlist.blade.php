@@ -19,6 +19,7 @@
         </div>
     </dl>
 
+    <div class="overflow-x-auto">
     <table class="w-full border-collapse text-sm">
         <thead>
             <tr class="bg-ink-900 text-ivory">
@@ -41,6 +42,7 @@
             @endforelse
         </tbody>
     </table>
+    </div>
 
     @if ($teachers->isNotEmpty())
         <div class="mt-8">

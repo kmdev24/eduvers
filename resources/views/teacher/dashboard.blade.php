@@ -89,8 +89,8 @@
                     <li class="flex items-center gap-3 px-6 py-4">
                         <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-ivory-200 text-xs font-semibold text-ink-800">{{ $submission->student->initials() }}</span>
                         <div class="min-w-0 flex-1">
-                            <p class="truncate text-sm font-medium text-ink-900">{{ $submission->student->name }}</p>
-                            <p class="truncate text-xs text-slate-500">{{ $submission->quiz->title }} · {{ $submission->created_at?->diffForHumans() }}</p>
+                            <p class="text-sm font-medium text-ink-900">{{ $submission->student->name }}</p>
+                            <p class="text-xs text-slate-500">{{ $submission->quiz->title }} · {{ $submission->created_at?->diffForHumans() }}</p>
                         </div>
                         <span class="{{ $submission->passed ? 'badge-gold' : 'badge-slate' }} tabular-nums">{{ $percent }}%</span>
                     </li>

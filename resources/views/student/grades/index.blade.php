@@ -29,7 +29,7 @@
                                 <li>
                                     <a href="{{ route('student.quizzes.show', $submission->quiz) }}" class="flex items-center gap-4 px-6 py-3.5 transition hover:bg-ivory-50">
                                         <div class="min-w-0 flex-1">
-                                            <p class="truncate font-medium text-ink-900">{{ $submission->quiz->title }}</p>
+                                            <p class="font-medium text-ink-900">{{ $submission->quiz->title }}</p>
                                             <p class="text-xs text-slate-500">{{ (float) $submission->score }}/{{ $submission->total_items }} · {{ $submission->created_at?->format('M j, Y') }}</p>
                                         </div>
                                         <div class="hidden w-24 sm:block">

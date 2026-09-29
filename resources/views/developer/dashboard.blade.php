@@ -147,8 +147,8 @@
                 <li class="flex items-center gap-4 px-6 py-4">
                     <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-ivory-200 text-sm font-semibold text-ink-800 ring-1 ring-ivory-300">{{ $account->initials() }}</span>
                     <div class="min-w-0 flex-1">
-                        <p class="truncate font-medium text-ink-900">{{ $account->name }}</p>
-                        <p class="truncate text-sm text-slate-500">{{ $account->email }}</p>
+                        <p class="font-medium text-ink-900">{{ $account->name }}</p>
+                        <p class="text-sm text-slate-500">{{ $account->email }}</p>
                     </div>
                     <span class="{{ $account->role === UserRole::Developer ? 'badge-gold' : 'badge-slate' }}">
                         {{ $account->role->label() }}@if ($account->teacher_type) · {{ $account->teacher_type->label() }}@endif

@@ -87,7 +87,7 @@
     .prose-eduvers pre { @apply overflow-x-auto rounded-xl bg-ink-900 p-4 text-sm text-ivory; }
     .prose-eduvers pre code { @apply bg-transparent p-0 text-ivory; }
     .prose-eduvers hr { @apply my-8 border-ivory-300; }
-    .prose-eduvers table { @apply w-full text-sm; }
+    .prose-eduvers table { @apply block w-full max-w-full overflow-x-auto text-sm; }
     .prose-eduvers th { @apply border-b border-ivory-300 px-3 py-2 text-left font-semibold text-ink-900; }
     .prose-eduvers td { @apply border-b border-ivory-200 px-3 py-2; }
 
@@ -129,19 +129,62 @@
     }
 }
 
-/* Header clock on phones: show the date and the time one at a time, taking
-   turns (see resources/js/app.js). From the sm breakpoint up both show side by side. */
+/*
+ * Responsive safety net — keeps every screen readable from 320px phones up:
+ *  - long words, emails and links wrap instead of pushing the page sideways;
+ *  - grid items may shrink below their content width (the default min-width:auto
+ *    lets one long line stretch a whole card past the screen edge);
+ *  - media never exceeds its container.
+ * Tables keep normal wrapping; wide ones scroll inside their .overflow-x-auto box.
+ */
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+    body {
+        overflow-wrap: break-word;
+    }
+    .grid > * {
+        min-width: 0;
+    }
+    img,
+    video,
+    iframe {
+        max-width: 100%;
+    }
+    table {
+        overflow-wrap: normal;
+    }
+}
+
+/* Printouts: never clip wide tables inside a scroll box */
+@media print {
+    .overflow-x-auto {
+        overflow: visible !important;
+    }
+}
+
+/* Header clock: when the date and time don't fit side by side, app.js sets
+   data-clock-fit="rotate" and they take turns. Before app.js runs, phones rotate. */
+[data-live-clock][data-clock-fit="rotate"] [data-clock-sep] {
+    display: none;
+}
+[data-live-clock][data-clock-fit="rotate"][data-clock-show="date"] [data-clock-time],
+[data-live-clock][data-clock-fit="rotate"][data-clock-show="time"] [data-clock-date] {
+    display: none;
+}
+[data-live-clock][data-clock-fit="rotate"] [data-clock-date],
+[data-live-clock][data-clock-fit="rotate"] [data-clock-time] {
+    animation: clock-swap 0.45s ease-out both;
+}
 @media (max-width: 639.98px) {
-    [data-live-clock] [data-clock-sep] {
+    [data-live-clock]:not([data-clock-fit]) [data-clock-sep] {
         display: none;
     }
-    [data-live-clock][data-clock-show="date"] [data-clock-time],
-    [data-live-clock][data-clock-show="time"] [data-clock-date] {
+    [data-live-clock]:not([data-clock-fit])[data-clock-show="date"] [data-clock-time],
+    [data-live-clock]:not([data-clock-fit])[data-clock-show="time"] [data-clock-date] {
         display: none;
-    }
-    [data-live-clock] [data-clock-date],
-    [data-live-clock] [data-clock-time] {
-        animation: clock-swap 0.45s ease-out both;
     }
 }
 @keyframes clock-swap {

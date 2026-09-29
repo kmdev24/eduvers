@@ -89,8 +89,8 @@
                     {{ $user->initials() }}
                 </span>
                 <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm font-medium text-ivory">{{ $user->name }}</span>
-                    <span class="block truncate text-xs text-slate-400">{{ $user->email }}</span>
+                    <span class="block text-sm font-medium text-ivory">{{ $user->name }}</span>
+                    <span class="block text-xs break-all text-slate-400">{{ $user->email }}</span>
                 </span>
             </a>
             <form method="POST" action="{{ route('logout') }}">
@@ -106,20 +106,21 @@
 {{-- ================= Main ================= --}}
 <div class="lg:pl-72">
     <header class="sticky top-0 z-30 border-b border-ivory-300/80 bg-ivory/85 backdrop-blur-md">
-        <div class="flex h-20 items-center gap-4 px-4 sm:px-6 lg:px-10">
+        <div class="flex min-h-20 items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 lg:px-10">
             <button type="button" data-sidebar-open class="-ml-1 rounded-lg p-2 text-ink-800 hover:bg-ivory-200 lg:hidden" aria-label="Open menu">
                 <x-icon name="menu" class="size-6" />
             </button>
             <a href="{{ route('dashboard') }}" class="shrink-0 lg:hidden" aria-label="EduVers home"><x-logo class="size-10" /></a>
 
             <div class="min-w-0 flex-1">
-                {{-- Live date & time in Philippine time (updated every second by app.js) --}}
+                {{-- Live date & time in Philippine time (app.js updates it every second and makes it fit) --}}
                 <p class="truncate text-xs font-semibold uppercase tracking-luxe text-champagne-dark" data-live-clock data-timezone="{{ config('app.timezone') }}" data-clock-show="date" data-clock-rotate="5">
                     <span data-clock-date>{{ now()->format('l, F j, Y') }}</span>
                     <span data-clock-sep class="mx-1 text-gold-400">·</span>
-                    <span data-clock-time class="tabular-nums"><time>{{ now()->format('g:i:s A') }}</time> <span class="text-slate-400">PHT</span></span>
+                    <span data-clock-time class="tabular-nums"><time>{{ now()->format('g:i:s A') }}</time> <span data-clock-zone class="text-slate-400">PHT</span></span>
                 </p>
-                <p class="truncate font-serif text-xl font-semibold text-ink-900">{{ $title }}</p>
+                {{-- Up to 2 lines so the sticky header stays compact; the full title is on the page itself --}}
+                <p class="line-clamp-2 font-serif text-base leading-snug font-semibold text-ink-900 sm:text-xl" title="{{ $title }}">{{ $title }}</p>
             </div>
 
             <span class="hidden text-xs font-semibold uppercase tracking-luxe text-champagne-dark xl:inline">Transform · Learn · Lead</span>

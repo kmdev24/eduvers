@@ -80,13 +80,13 @@
                                     <div class="flex items-center gap-3">
                                         <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-ivory-200 text-sm font-semibold text-ink-800 ring-1 ring-ivory-300">{{ $account->initials() }}</span>
                                         <div class="min-w-0">
-                                            <p class="truncate font-medium text-ink-900">
+                                            <p class="font-medium text-ink-900">
                                                 {{ $account->name }}
                                                 @if ($account->is(auth()->user()))
                                                     <span class="ml-1 text-xs font-normal text-champagne-dark">(you)</span>
                                                 @endif
                                             </p>
-                                            <p class="truncate text-slate-500">{{ $account->email }}</p>
+                                            <p class="text-slate-500">{{ $account->email }}</p>
                                         </div>
                                     </div>
                                 </td>

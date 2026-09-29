@@ -49,8 +49,8 @@
                             <x-icon name="book-open" class="size-5" />
                         </span>
                         <div class="min-w-0 flex-1">
-                            <p class="truncate font-medium text-ink-900">{{ $offering->subject->name }}</p>
-                            <p class="truncate text-sm text-slate-500">{{ $offering->subject->code }} · {{ $offering->teacher->name }}</p>
+                            <p class="font-medium text-ink-900">{{ $offering->subject->name }}</p>
+                            <p class="text-sm text-slate-500">{{ $offering->subject->code }} · {{ $offering->teacher->name }}</p>
                         </div>
                     </li>
                 @empty
@@ -87,8 +87,8 @@
                 @forelse ($recentLessons as $lesson)
                     <li class="flex items-center justify-between gap-4 px-6 py-4">
                         <div class="min-w-0">
-                            <a href="{{ route('student.lessons.show', $lesson) }}" class="block truncate font-medium text-ink-900 hover:text-gold-700">{{ $lesson->title }}</a>
-                            <p class="truncate text-sm text-slate-500">{{ $lesson->subject->name }}</p>
+                            <a href="{{ route('student.lessons.show', $lesson) }}" class="block font-medium text-ink-900 hover:text-gold-700">{{ $lesson->title }}</a>
+                            <p class="text-sm text-slate-500">{{ $lesson->subject->name }}</p>
                         </div>
                         <span class="shrink-0 text-xs text-slate-400">{{ $lesson->created_at?->diffForHumans() }}</span>
                     </li>
@@ -111,8 +111,8 @@
                     @endphp
                     <li class="flex items-center justify-between gap-3 px-6 py-4">
                         <div class="min-w-0">
-                            <a href="{{ route('student.quizzes.show', $submission->quiz) }}" class="block truncate text-sm font-medium text-ink-900 hover:text-gold-700">{{ $submission->quiz->title }}</a>
-                            <p class="truncate text-xs text-slate-500">{{ $submission->quiz->subject->name }}</p>
+                            <a href="{{ route('student.quizzes.show', $submission->quiz) }}" class="block text-sm font-medium text-ink-900 hover:text-gold-700">{{ $submission->quiz->title }}</a>
+                            <p class="text-xs text-slate-500">{{ $submission->quiz->subject->name }}</p>
                         </div>
                         <span class="{{ $submission->passed ? 'badge-gold' : 'badge-slate' }} tabular-nums">{{ $percent }}%</span>
                     </li>

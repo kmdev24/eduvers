@@ -31,7 +31,7 @@
                             </span>
                             <div class="min-w-0 flex-1">
                                 <p class="font-medium text-ink-900 group-hover:text-gold-800">{{ $lesson->title }}</p>
-                                <p class="mt-0.5 line-clamp-2 text-sm text-slate-500">{{ $lesson->excerpt(180) ?: ($lesson->hasVideo() ? 'Watch the video lesson.' : 'Open to view the attached file.') }}</p>
+                                <p class="mt-0.5 text-sm text-slate-500">{{ $lesson->excerpt(180) ?: ($lesson->hasVideo() ? 'Watch the video lesson.' : 'Open to view the attached file.') }}</p>
                                 <p class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
                                     <span>{{ $lesson->created_at?->format('M j, Y') }}</span>
                                     @if ($lesson->hasVideo())
@@ -62,7 +62,7 @@
                     @php $sub = $submissions->get($quiz->id); @endphp
                     <li class="flex items-center gap-3 px-6 py-4">
                         <div class="min-w-0 flex-1">
-                            <p class="truncate font-medium text-ink-900">{{ $quiz->title }}</p>
+                            <p class="font-medium text-ink-900">{{ $quiz->title }}</p>
                             <p class="text-xs text-slate-500">{{ $quiz->questions_count }} questions · pass {{ $quiz->passing_score }}%</p>
                         </div>
                         @if ($sub)
