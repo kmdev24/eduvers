@@ -128,3 +128,29 @@
         @apply h-px w-full bg-gradient-to-r from-transparent via-champagne/60 to-transparent;
     }
 }
+
+/* Header clock on phones: show the date and the time one at a time, taking
+   turns (see resources/js/app.js). From the sm breakpoint up both show side by side. */
+@media (max-width: 639.98px) {
+    [data-live-clock] [data-clock-sep] {
+        display: none;
+    }
+    [data-live-clock][data-clock-show="date"] [data-clock-time],
+    [data-live-clock][data-clock-show="time"] [data-clock-date] {
+        display: none;
+    }
+    [data-live-clock] [data-clock-date],
+    [data-live-clock] [data-clock-time] {
+        animation: clock-swap 0.45s ease-out both;
+    }
+}
+@keyframes clock-swap {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-live-clock] [data-clock-date],
+    [data-live-clock] [data-clock-time] {
+        animation: none;
+    }
+}

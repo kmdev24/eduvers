@@ -112,11 +112,10 @@
 
             <div class="min-w-0 flex-1">
                 {{-- Live date & time in Philippine time (updated every second by app.js) --}}
-                <p class="truncate text-xs font-semibold uppercase tracking-luxe text-champagne-dark" data-live-clock data-timezone="{{ config('app.timezone') }}">
+                <p class="truncate text-xs font-semibold uppercase tracking-luxe text-champagne-dark" data-live-clock data-timezone="{{ config('app.timezone') }}" data-clock-show="date" data-clock-rotate="5">
                     <span data-clock-date>{{ now()->format('l, F j, Y') }}</span>
-                    <span class="mx-1 text-gold-400">·</span>
-                    <time data-clock-time class="tabular-nums">{{ now()->format('g:i:s A') }}</time>
-                    <span class="hidden text-slate-400 sm:inline">PHT</span>
+                    <span data-clock-sep class="mx-1 text-gold-400">·</span>
+                    <span data-clock-time class="tabular-nums"><time>{{ now()->format('g:i:s A') }}</time> <span class="text-slate-400">PHT</span></span>
                 </p>
                 <p class="truncate font-serif text-xl font-semibold text-ink-900">{{ $title }}</p>
             </div>

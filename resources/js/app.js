@@ -93,7 +93,7 @@ document.querySelectorAll('[data-audience-select]').forEach((select) => {
 document.querySelectorAll('[data-live-clock]').forEach((clock) => {
     const timeZone = clock.dataset.timezone || 'Asia/Manila';
     const dateEl = clock.querySelector('[data-clock-date]');
-    const timeEl = clock.querySelector('[data-clock-time]');
+    const timeEl = clock.querySelector('[data-clock-time] time');
 
     const dateFormat = new Intl.DateTimeFormat('en-US', {
         timeZone, weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
@@ -110,6 +110,15 @@ document.querySelectorAll('[data-live-clock]').forEach((clock) => {
 
     tick();
     setInterval(tick, 1000);
+
+    // Phones: take turns showing the date and the time every N seconds
+    // (data-clock-rotate="5"). CSS hides the inactive one below the sm breakpoint.
+    const seconds = Number(clock.dataset.clockRotate) || 0;
+    if (seconds > 0) {
+        setInterval(() => {
+            clock.dataset.clockShow = clock.dataset.clockShow === 'date' ? 'time' : 'date';
+        }, seconds * 1000);
+    }
 });
 
 // Lesson form: show the panel for the chosen video source (none / upload / link)
