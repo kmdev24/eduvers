@@ -43,7 +43,7 @@ abstract class StudentActivityNotification extends Notification implements Shoul
      *     action: string, details?: array<string, string>
      * }  $data
      */
-    public function __construct(public readonly array $data) {}
+    public function __construct(public array $data) {}
 
     /** Seconds to wait before retrying a failed email. */
     public function backoff(): array

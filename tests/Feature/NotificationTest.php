@@ -225,6 +225,26 @@ class NotificationTest extends TestCase
         $this->assertStringContainsString('[EduVers] New lesson: Loops', $mails[0]->getOriginalMessage()->getSubject());
     }
 
+    /**
+     * Queued notifications are unserialized by the queue (SerializesModels). On PHP 8.3 —
+     * the version in the Docker image — that fails for readonly properties declared in a
+     * parent class ("Cannot initialize readonly property … from scope …"). PHP 8.4 allows it,
+     * so guard against it explicitly.
+     */
+    public function test_queued_notifications_have_no_readonly_properties(): void
+    {
+        foreach ([NewLessonNotification::class, NewQuizNotification::class, CourseAnnouncementNotification::class] as $class) {
+            foreach ((new \ReflectionClass($class))->getProperties() as $property) {
+                $this->assertFalse($property->isReadOnly(), "{$class}::\${$property->getName()} must not be readonly");
+            }
+        }
+
+        // And a full serialize → unserialize round trip, as the queue does it
+        $original = NewLessonNotification::for($this->makeLesson('Round trip'));
+        $job = unserialize(serialize(new \Illuminate\Notifications\SendQueuedNotifications($this->studentA1, $original, ['mail'])));
+        $this->assertSame('Round trip', $job->notification->data['title']);
+    }
+
     public function test_nothing_is_sent_when_the_transaction_rolls_back(): void
     {
         config(['queue.default' => 'database']);
