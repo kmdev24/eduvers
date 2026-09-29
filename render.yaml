@@ -1,0 +1,71 @@
+# Render Blueprint for EduVers — https://render.com/docs/blueprint-spec
+# Render → New → Blueprint → pick this GitHub repo. Render creates the web
+# service (Docker) and a managed PostgreSQL database, and links them.
+#
+# After the first sync, open the "eduvers" service → Environment and fill in
+# the two values marked sync:false (APP_KEY and APP_URL).
+
+services:
+  - type: web
+    name: eduvers
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: singapore            # closest Render region to the Philippines
+    plan: starter                # a paid plan is required for the persistent disk below
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      - key: APP_NAME
+        value: EduVers
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY             # paste the output of:  php artisan key:generate --show
+        sync: false
+      - key: APP_URL             # e.g. https://eduvers.onrender.com (or your custom domain)
+        sync: false
+      - key: APP_TIMEZONE
+        value: Asia/Manila
+
+      - key: LOG_CHANNEL
+        value: stderr            # shows Laravel logs in Render's Logs tab
+      - key: LOG_LEVEL
+        value: warning
+
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL              # internal connection string of the database below
+        fromDatabase:
+          name: eduvers-db
+          property: connectionString
+
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: FILESYSTEM_DISK
+        value: local
+
+      - key: RUN_MIGRATIONS      # php artisan migrate --force on every deploy
+        value: "true"
+      - key: SEED_DEMO_DATA      # set "true" ONCE for a demo; never leave on in production
+        value: "false"
+
+    # Lesson attachments and uploaded videos live in storage/app/private.
+    # Without a disk they are LOST on every deploy/restart.
+    disk:
+      name: eduvers-storage
+      mountPath: /var/www/html/storage/app
+      sizeGB: 5
+
+databases:
+  - name: eduvers-db
+    databaseName: eduvers
+    user: eduvers
+    region: singapore
+    plan: basic-256mb            # "free" also works for testing but expires after 30 days

@@ -1,0 +1,46 @@
+# Keep the Docker build context small and free of secrets / local data
+.git
+.github
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+
+# Secrets & local environment
+.env
+.env.*
+!.env.example
+auth.json
+
+# Rebuilt inside the image
+vendor
+node_modules
+public/build
+public/hot
+public/fonts-manifest*.json
+public/storage
+bootstrap/cache/*.php
+
+# Local data, uploads, logs, caches
+storage/app/private/*
+storage/app/public/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+storage/pail
+database/*.sqlite*
+*.sql
+*.sql.gz
+backups
+*.zip
+*.rar
+*.7z
+*.log
+
+# Not needed at runtime
+tests
+.phpunit.cache
+.phpunit.result.cache
+docker-compose.yml
+docker-compose.override.yml

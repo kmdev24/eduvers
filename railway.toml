@@ -1,0 +1,16 @@
+# Railway config for EduVers (web app). The database is TiDB Cloud (MySQL-compatible).
+# Docs: https://docs.railway.com/config-as-code/reference
+# Note: Railway marks config-as-code as deprecated (supported until Dec 1, 2026);
+# the same settings can be set in the service's Settings tab.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Laravel's built-in health route. The first boot runs all migrations
+# against TiDB before Apache starts, so allow enough time.
+healthcheckPath = "/up"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

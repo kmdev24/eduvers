@@ -1,0 +1,130 @@
+@import 'tailwindcss';
+
+/* EduVers theme: gold palette, fonts, shadows live in tailwind.config.js */
+@config '../../tailwind.config.js';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+/* Class-based dark mode: add class="dark" on <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Component classes only @apply built-in/theme utilities (never other custom
+ * classes), as Tailwind v4 requires.
+ */
+@layer components {
+    /* Surfaces */
+    .card {
+        @apply rounded-2xl border border-ivory-300 bg-white shadow-soft
+               dark:border-slate-700/60 dark:bg-ink-800;
+    }
+    .card-gold {
+        @apply rounded-2xl border border-champagne/40 bg-white shadow-gold-ring
+               dark:bg-ink-800;
+    }
+
+    /* Buttons */
+    .btn-gold {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5
+               text-sm font-semibold tracking-wide transition duration-200
+               focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:ring-offset-2
+               disabled:opacity-50
+               bg-gold-gradient text-ink-900 shadow-gold hover:brightness-105;
+    }
+    .btn-dark {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5
+               text-sm font-semibold tracking-wide transition duration-200
+               focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:ring-offset-2
+               disabled:opacity-50
+               bg-ink-900 text-ivory hover:bg-ink-800;
+    }
+    .btn-outline-gold {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5
+               text-sm font-semibold tracking-wide transition duration-200
+               focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:ring-offset-2
+               disabled:opacity-50
+               border border-gold-500 text-gold-600 hover:bg-gold-50
+               dark:text-gold-400 dark:hover:bg-gold-500/10;
+    }
+
+    /* Secondary / utility buttons */
+    .btn-ghost {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl border border-ivory-300 bg-white px-4 py-2.5
+               text-sm font-semibold text-ink-800 shadow-soft transition duration-200
+               hover:border-gold-300 hover:text-gold-700
+               focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:ring-offset-2;
+    }
+    .icon-btn {
+        @apply inline-flex items-center justify-center rounded-lg p-2 text-slate-400 transition
+               hover:bg-ivory-200 hover:text-ink-900
+               focus:outline-none focus:ring-2 focus:ring-gold-500/40;
+    }
+    .icon-btn-danger {
+        @apply inline-flex items-center justify-center rounded-lg p-2 text-slate-400 transition
+               hover:bg-red-50 hover:text-red-600
+               focus:outline-none focus:ring-2 focus:ring-red-500/30
+               disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-400;
+    }
+
+    /* Tables */
+    .table-head {
+        @apply text-left text-xs font-semibold uppercase tracking-wider text-slate-400;
+    }
+
+    /* Lesson reading (rendered Markdown) */
+    .prose-eduvers { @apply text-[15px] leading-7 text-slate-700; }
+    .prose-eduvers > * + * { @apply mt-4; }
+    .prose-eduvers h1 { @apply mt-8 font-serif text-3xl font-semibold text-ink-900; }
+    .prose-eduvers h2 { @apply mt-8 font-serif text-2xl font-semibold text-ink-900; }
+    .prose-eduvers h3 { @apply mt-6 font-serif text-xl font-semibold text-ink-900; }
+    .prose-eduvers strong { @apply font-semibold text-ink-900; }
+    .prose-eduvers a { @apply font-medium text-gold-700 underline decoration-gold-300 underline-offset-2 hover:text-gold-900; }
+    .prose-eduvers ul { @apply list-disc space-y-1.5 pl-6 marker:text-gold-500; }
+    .prose-eduvers ol { @apply list-decimal space-y-1.5 pl-6 marker:text-gold-600; }
+    .prose-eduvers blockquote { @apply rounded-r-xl border-l-4 border-gold-400 bg-gold-50/60 px-5 py-3 text-slate-600 italic; }
+    .prose-eduvers code { @apply rounded-md bg-ivory-200 px-1.5 py-0.5 font-mono text-[13px] text-ink-800; }
+    .prose-eduvers pre { @apply overflow-x-auto rounded-xl bg-ink-900 p-4 text-sm text-ivory; }
+    .prose-eduvers pre code { @apply bg-transparent p-0 text-ivory; }
+    .prose-eduvers hr { @apply my-8 border-ivory-300; }
+    .prose-eduvers table { @apply w-full text-sm; }
+    .prose-eduvers th { @apply border-b border-ivory-300 px-3 py-2 text-left font-semibold text-ink-900; }
+    .prose-eduvers td { @apply border-b border-ivory-200 px-3 py-2; }
+
+    /* Selectable answer / option card (use with a hidden peer radio) */
+    .choice-card {
+        @apply flex w-full cursor-pointer items-center gap-4 rounded-xl border border-ivory-300 bg-white px-4 py-3.5 text-left transition
+               hover:border-gold-300 hover:bg-ivory-50
+               peer-checked:border-gold-500 peer-checked:bg-gold-50/60 peer-checked:ring-2 peer-checked:ring-gold-500/20
+               peer-focus-visible:ring-2 peer-focus-visible:ring-gold-500/40;
+    }
+
+    /* Typography */
+    .eyebrow {
+        @apply text-xs font-semibold uppercase tracking-luxe text-champagne-dark dark:text-gold-400;
+    }
+    .heading-serif {
+        @apply font-serif font-semibold text-ink-900 dark:text-ivory;
+    }
+
+    /* Forms */
+    .input {
+        @apply w-full rounded-xl border-ivory-300 bg-ivory-50 text-sm text-ink-900
+               placeholder:text-slate-400 focus:border-gold-500 focus:ring-gold-500/30
+               dark:border-slate-700 dark:bg-ink-900 dark:text-ivory;
+    }
+
+    /* Badges */
+    .badge-gold {
+        @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+               bg-gold-100 text-gold-800 ring-1 ring-gold-300/60;
+    }
+    .badge-slate {
+        @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+               bg-slate-100 text-slate-700 ring-1 ring-slate-200;
+    }
+
+    .gold-divider {
+        @apply h-px w-full bg-gradient-to-r from-transparent via-champagne/60 to-transparent;
+    }
+}
