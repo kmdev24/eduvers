@@ -42,7 +42,8 @@ ENV APP_ENV=production \
 # PHP extensions (MySQL + PostgreSQL drivers, intl for number/file-size formatting)
 COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
 RUN install-php-extensions pdo_mysql pdo_pgsql intl bcmath zip opcache \
- && a2enmod rewrite headers \
+ && (a2dismod -f mpm_event mpm_worker || true) \
+ && a2enmod mpm_prefork rewrite headers \
  && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
  && rm -rf /var/lib/apt/lists/* /tmp/*
 

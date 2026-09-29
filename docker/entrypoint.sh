@@ -44,5 +44,10 @@ fi
 # Files created above by root must be writable by Apache (www-data)
 chown -R www-data:www-data storage bootstrap/cache
 
+# mod_php needs exactly one MPM (prefork). Some hosts/base-image builds leave
+# mpm_event enabled too, which makes Apache refuse to start ("More than one MPM loaded").
+rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.*
+[ -e /etc/apache2/mods-enabled/mpm_prefork.load ] || a2enmod mpm_prefork >/dev/null
+
 echo "▶ EduVers: starting web server on port ${PORT}…"
 exec "$@"
