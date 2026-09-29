@@ -24,7 +24,7 @@
     @else
         <ul class="divide-y divide-ivory-200">
             @foreach ($announcements as $announcement)
-                <li @class(['px-6 py-5', 'bg-gold-50/40' => $announcement->is_pinned])>
+                <li id="announcement-{{ $announcement->id }}" @class(['px-6 py-5', 'bg-gold-50/40' => $announcement->is_pinned])>
                     <div class="flex flex-wrap items-center gap-2 text-xs">
                         @if ($announcement->is_pinned)
                             <span class="inline-flex items-center gap-1 font-semibold text-gold-700"><x-icon name="star" class="size-3.5" /> Pinned</span>
@@ -32,7 +32,13 @@
                         <span class="{{ $announcement->audience === AnnouncementAudience::Section ? 'badge-slate' : 'badge-gold' }}">{{ $announcement->audienceLabel() }}</span>
                         <span class="text-slate-400">{{ $announcement->author?->name }} · {{ $announcement->created_at?->diffForHumans() }}</span>
                     </div>
-                    <h3 class="mt-2 font-medium text-ink-900">{{ $announcement->title }}</h3>
+                    <h3 class="mt-2 font-medium text-ink-900">
+                        @if (auth()->user()->isStudent())
+                            <a href="{{ route('student.announcements.show', $announcement) }}" class="hover:text-gold-700">{{ $announcement->title }}</a>
+                        @else
+                            {{ $announcement->title }}
+                        @endif
+                    </h3>
                     @if (mb_strlen($announcement->body) > 280)
                         <details class="group mt-1">
                             <summary class="cursor-pointer list-none text-sm text-slate-600">

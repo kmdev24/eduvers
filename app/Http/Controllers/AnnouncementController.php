@@ -7,6 +7,7 @@ use App\Models\Announcement;
 use App\Models\Section;
 use App\Models\SubjectTeacher;
 use App\Models\User;
+use App\Support\StudentNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -36,13 +37,17 @@ class AnnouncementController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, StudentNotifier $notifier): RedirectResponse
     {
         $user = $request->user();
 
-        Announcement::create($this->validated($request, $user) + ['author_id' => $user->id]);
+        $announcement = Announcement::create($this->validated($request, $user) + ['author_id' => $user->id]);
 
-        return redirect()->route('announcements.index')->with('status', 'Announcement posted.');
+        // Students who can see it get an in-app notification and an email
+        $notified = $notifier->announcementPosted($announcement);
+
+        return redirect()->route('announcements.index')
+            ->with('status', 'Announcement posted.'.StudentNotifier::summary($notified));
     }
 
     public function edit(Request $request, Announcement $announcement): View

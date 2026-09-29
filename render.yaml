@@ -46,8 +46,10 @@ services:
         value: "true"
       - key: CACHE_STORE
         value: database
-      - key: QUEUE_CONNECTION
-        value: sync
+      - key: QUEUE_CONNECTION    # queued email alerts; the container runs a worker
+        value: database
+      - key: MAIL_MAILER         # set to smtp (or brevo) and add the MAIL_* / BREVO_API_KEY values
+        value: log
       - key: FILESYSTEM_DISK
         value: local
 

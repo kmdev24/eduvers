@@ -145,6 +145,7 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 |---|---|
 | `tests/Feature/RoleAccessTest.php` | Every Developer, Teacher and Student page. Guests are sent to login, the owning role gets **200**, the other roles get **403 Forbidden**. Also: `/dashboard` redirects to the right portal; announcements are closed to students; teachers can't edit another teacher's lesson or quiz; students can only take published quizzes for their own section; a quiz is scored immediately and only once; master lists and gradebook exports are restricted. |
 | `tests/Feature/AuthenticationTest.php` | Login, wrong password, lockout after 5 failed attempts, logout, signed-in users kept off the login page, password change with the current password. |
+| `tests/Feature/NotificationTest.php` | Who is notified for lessons, quizzes and announcements (and who isn't); no repeat alerts on edit/re-publish; bell entry is instant while emails wait for the queue worker, then send; nothing is sent when the transaction rolls back; email content, theme and link-injection safety; the Brevo mailer; the bell, Notifications page, mark as read, and that users can't touch each other's notifications. |
 | `tests/Feature/ExampleTest.php` | The home page redirects guests to the login page. |
 
 > If tests fail with a *Vite manifest not found* or font-manifest error, run `npm run build` once (or keep `npm run dev` running) and try again.
@@ -190,6 +191,8 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 - [x] **Lesson reader:** video player at the top (HTML5 or embedded), then content; open PDFs in the browser, download attachments, previous/next navigation
 - [x] **Quizzes:** one attempt, instant automated scoring, score ring, answer review (if the teacher allows)
 - [x] **My Grades:** results by term and subject with averages
+- [x] **Notifications:** header bell with unread badge and dropdown, full Notifications page (All / Unread, mark one or all as read); clicking a notification opens the lesson, quiz or announcement
+- [x] **Email alerts** for new lessons, published quizzes and announcements (queued, EduVers-branded)
 
 ### Branding and reports
 - [x] Movers Institute logo on the login page, sidebar, phone-size top bar and printed report letterheads
@@ -421,6 +424,65 @@ Then deploy on Railway. Migrations already applied are skipped. Uploaded files i
 | Health check fails / "Application failed to respond" | Make sure `PORT=8080` and the domain's target port is `8080` |
 | Uploaded files disappear after deploy | Attach a Railway volume at `/var/www/html/storage/app` |
 
+### 8.10 Notifications and email alerts
+
+**What triggers them**
+
+| Teacher / developer action | Who is notified |
+|---|---|
+| Posts a lesson | Students whose section takes that subject |
+| Publishes a quiz (first time only) | Students in the quiz's sections. Sections added later to a live quiz are notified when added |
+| Posts an announcement | *Section*: that section. *All students* / *School-wide*: every student. *All teachers*: nobody |
+
+Each student gets an **in-app notification** (the bell) and an **email**. Editing a lesson or re-publishing a quiz does not notify anyone again.
+
+**How it works**
+
+- `App\Support\StudentNotifier` finds the recipients; `App\Notifications\NewLessonNotification`, `NewQuizNotification` and `CourseAnnouncementNotification` use Laravel's `database` and `mail` channels.
+- The **bell** entry is written during the request (instant, no worker needed). The **email** is a queued job (`ShouldQueue`), so posting to a large class stays fast.
+- Both wait until the database transaction commits (`ShouldQueueAfterCommit`): a failed save never sends an alert.
+- If mail or the queue is broken, the lesson/quiz/announcement is still saved; the error goes to the log.
+- Emails use the EduVers theme (`resources/views/vendor/mail/html/themes/eduvers.css`, template `resources/views/mail/student-activity.blade.php`).
+
+**Local development (Laragon)**
+
+1. `php artisan migrate` (creates the `notifications` table).
+2. In `.env` pick a mailer. **Mailtrap** (fake inbox, nothing reaches real students) or **Gmail** with an App Password. Both are in `.env.example`. Leave `MAIL_MAILER=log` to write emails into `storage/logs/laravel.log`.
+3. Keep a queue worker open in a second terminal while you test:
+   ```bash
+   php artisan queue:work
+   ```
+   Without it, the bell still works but emails wait in the `jobs` table. (`QUEUE_CONNECTION=sync` sends during the request instead.)
+
+**Railway**
+
+Railway's Free, Trial and Hobby plans **block SMTP**, so Gmail/Mailtrap SMTP won't connect from there. EduVers includes a `brevo` mailer that sends over HTTPS instead:
+
+1. Create a free [Brevo](https://www.brevo.com) account (300 emails/day). Under **Senders**, verify the address you'll send from (a Gmail address works).
+2. **SMTP & API → API keys → Generate** a key.
+3. Railway variables:
+   ```
+   QUEUE_CONNECTION=database
+   MAIL_MAILER=brevo
+   BREVO_API_KEY=xkeysib-...
+   MAIL_FROM_ADDRESS=your.verified.sender@gmail.com
+   MAIL_FROM_NAME=EduVers
+   ```
+4. Redeploy. The container starts a queue worker next to Apache (`RUN_QUEUE_WORKER=true`, the default). The logs show `▶ EduVers: starting queue worker`.
+
+Settings: `NOTIFICATIONS_MAIL=false` keeps the bell but turns emails off. `RUN_QUEUE_WORKER=false` if you run a separate worker service.
+
+**Troubleshooting**
+
+| Symptom | Fix |
+|---|---|
+| Bell works, no emails, rows piling up in `jobs` | No worker: run `php artisan queue:work` (local) or check `QUEUE_CONNECTION=database` and the worker line in the Railway logs |
+| Rows in `failed_jobs` | `php artisan queue:failed` shows the error; fix the mail settings, then `php artisan queue:retry all` |
+| `Brevo API rejected the email (HTTP 401)` | Wrong `BREVO_API_KEY` |
+| `Brevo API rejected the email (HTTP 400)` mentioning the sender | `MAIL_FROM_ADDRESS` isn't a verified Brevo sender |
+| `Connection could not be established` / timeout on Railway | SMTP is blocked on your plan: use `MAIL_MAILER=brevo` |
+| Emails land in spam | Normal for a free Gmail sender; ask students to mark EduVers as "Not spam", or verify a school domain in Brevo |
+
 ## 9. Backups and restore
 
 ### Database
@@ -470,6 +532,7 @@ On Windows servers, use **Task Scheduler** with the same commands in a `.bat` fi
 | Google Drive video shows "access denied" | In Drive, set sharing to **Anyone with the link** |
 | Changes to `.env` not taking effect | `php artisan config:clear` (or `config:cache` in production) |
 | 403 page when opening a link | The signed-in role isn't allowed there. This is the role guard working as intended |
+| Students see the bell notification but get no email | Start `php artisan queue:work` (see [8.10](#810-notifications-and-email-alerts)) |
 
 ---
 
@@ -482,23 +545,28 @@ app/
     Auth/                LoginController
     Developer/           Dashboard, Users, Sections, Subjects, SubjectTeacher, AcademicTerms, TrackStrands
     Teacher/             Dashboard, Lessons, Quizzes, QuizQuestions, Gradebook (+ export/print)
-    Student/             Dashboard, Subjects, Lessons, Quizzes, Grades
-    AnnouncementController, MasterListController, ProfileController, LessonAttachmentController
+    Student/             Dashboard, Subjects, Lessons, Quizzes, Grades, Announcements
+    AnnouncementController, MasterListController, ProfileController, LessonAttachmentController,
+    NotificationController (bell, Notifications page, mark as read)
   Http/Middleware/       EnsureUserHasRole (the "role:" route guard)
   Http/Requests/         Form validation (users, sections, subjects, lessons)
   Models/                User, AcademicTerm, TrackStrand, GradeLevel, Section, Subject, SubjectTeacher,
                          Lesson, Quiz, QuizQuestion, QuizSubmission, Announcement
+  Mail/Transport/        BrevoApiTransport (email over HTTPS for hosts that block SMTP)
+  Notifications/         NewLessonNotification, NewQuizNotification, CourseAnnouncementNotification
   Policies/              LessonPolicy, QuizPolicy, AnnouncementPolicy
-  Support/               Gradebook (shared grade calculations), Csv (Excel-friendly CSV export)
+  Support/               Gradebook (shared grade calculations), Csv (Excel-friendly CSV export),
+                         StudentNotifier (who gets notified)
 database/
-  migrations/            All tables (MySQL- and SQLite-compatible)
+  migrations/            All tables (MySQL/TiDB, PostgreSQL and SQLite)
   seeders/               EduVersSeeder (demo data)
 resources/
   css/app.css            Tailwind + EduVers component classes
   js/app.js              Sidebar, confirmations, form helpers
-  views/                 Blade views per role, components/, reports/ (printables)
+  views/                 Blade views per role, components/, reports/ (printables),
+                         mail/ + vendor/mail/ (EduVers email template and theme)
 routes/web.php           All routes, grouped by role
-tests/Feature/           Role guard and authentication tests
+tests/Feature/           Role guard, authentication and notification tests
 public/images/logo.jpg   Movers Institute logo
 ```
 

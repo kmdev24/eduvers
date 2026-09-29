@@ -6,6 +6,7 @@ use App\Http\Controllers\Developer;
 use App\Http\Controllers\LessonAttachmentController;
 use App\Http\Controllers\LessonVideoController;
 use App\Http\Controllers\MasterListController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student;
 use App\Http\Controllers\Teacher;
@@ -39,6 +40,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
+    // In-app notifications (bell). Each user only ever sees their own.
+    // whereUuid: a malformed id is a 404 (PostgreSQL would otherwise error on the uuid column).
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/count', [NotificationController::class, 'count'])->name('notifications.count');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::get('/notifications/{notification}/open', [NotificationController::class, 'open'])->whereUuid('notification')->name('notifications.open');
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->whereUuid('notification')->name('notifications.read');
 
     /* Developer + Teacher ----------------------------------------------- */
     Route::middleware('role:developer,teacher')->group(function () {
@@ -106,5 +115,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/quizzes/{quiz}', [Student\QuizController::class, 'submit'])->name('quizzes.submit');
 
             Route::get('/grades', Student\GradeController::class)->name('grades');
+
+            Route::get('/announcements/{announcement}', [Student\AnnouncementController::class, 'show'])->name('announcements.show');
         });
 });

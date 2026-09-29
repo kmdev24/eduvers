@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Teacher\LessonRequest;
 use App\Models\Lesson;
 use App\Models\Subject;
+use App\Support\StudentNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -40,7 +41,7 @@ class LessonController extends Controller
         ]);
     }
 
-    public function store(LessonRequest $request): RedirectResponse
+    public function store(LessonRequest $request, StudentNotifier $notifier): RedirectResponse
     {
         $subject = Subject::findOrFail($request->integer('subject_id'));
 
@@ -52,7 +53,11 @@ class LessonController extends Controller
         $this->handleVideo($request, $lesson);
         $lesson->save();
 
-        return redirect()->route('teacher.lessons.show', $lesson)->with('status', 'Lesson published.');
+        // In-app notification now, email alert in the background
+        $notified = $notifier->lessonPosted($lesson);
+
+        return redirect()->route('teacher.lessons.show', $lesson)
+            ->with('status', 'Lesson published.'.StudentNotifier::summary($notified));
     }
 
     public function show(Lesson $lesson): View

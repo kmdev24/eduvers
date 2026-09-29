@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\Quiz;
 use App\Models\Subject;
+use App\Support\StudentNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -81,7 +82,7 @@ class QuizController extends Controller
         ]);
     }
 
-    public function update(Request $request, Quiz $quiz): RedirectResponse
+    public function update(Request $request, Quiz $quiz, StudentNotifier $notifier): RedirectResponse
     {
         Gate::authorize('update', $quiz);
 
@@ -102,13 +103,18 @@ class QuizController extends Controller
             'passing_score'  => $data['passing_score'],
             'reveal_answers' => $request->boolean('reveal_answers'),
         ]);
-        $quiz->sections()->sync($data['sections'] ?? []);
+        $changes = $quiz->sections()->sync($data['sections'] ?? []);
 
-        return back()->with('status', 'Quiz settings saved.');
+        // Sections added to a quiz that is already live hear about it now
+        $notified = $quiz->is_published && $changes['attached'] !== []
+            ? $notifier->quizPublished($quiz, $changes['attached'])
+            : 0;
+
+        return back()->with('status', 'Quiz settings saved.'.StudentNotifier::summary($notified));
     }
 
     /** Publish or unpublish. */
-    public function publish(Quiz $quiz): RedirectResponse
+    public function publish(Quiz $quiz, StudentNotifier $notifier): RedirectResponse
     {
         Gate::authorize('update', $quiz);
 
@@ -120,9 +126,14 @@ class QuizController extends Controller
                 return back()->with('error', 'Choose at least one section before publishing.');
             }
 
+            // Notify only the first time; re-publishing after a fix shouldn't alert students twice
+            $firstPublish = $quiz->published_at === null;
+
             $quiz->update(['is_published' => true, 'published_at' => now()]);
 
-            return back()->with('status', 'Quiz published. Students in the selected sections can now take it.');
+            $notified = $firstPublish ? $notifier->quizPublished($quiz) : 0;
+
+            return back()->with('status', 'Quiz published. Students in the selected sections can now take it.'.StudentNotifier::summary($notified));
         }
 
         $quiz->update(['is_published' => false]);

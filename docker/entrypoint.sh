@@ -44,6 +44,23 @@ fi
 # Files created above by root must be writable by Apache (www-data)
 chown -R www-data:www-data storage bootstrap/cache
 
+# Background queue worker for queued emails (new lesson / quiz / announcement alerts).
+# Runs as www-data next to Apache and restarts itself if it stops. Skipped when
+# QUEUE_CONNECTION=sync (jobs then run inside the web request) or RUN_QUEUE_WORKER=false
+# (e.g. when you run a separate worker service).
+if [ "${RUN_QUEUE_WORKER:-true}" = "true" ] && [ "${QUEUE_CONNECTION:-database}" != "sync" ]; then
+    echo "▶ EduVers: starting queue worker (${QUEUE_CONNECTION:-database})…"
+    as_www_data="runuser -u www-data --"
+    command -v runuser >/dev/null 2>&1 || as_www_data=""
+    (
+        while true; do
+            $as_www_data php artisan queue:work --sleep=3 --tries=3 --max-time=3600 --no-interaction || true
+            echo "  queue worker stopped — restarting in 5s…" >&2
+            sleep 5
+        done
+    ) &
+fi
+
 # mod_php needs exactly one MPM (prefork). Some hosts/base-image builds leave
 # mpm_event enabled too, which makes Apache refuse to start ("More than one MPM loaded").
 rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.*

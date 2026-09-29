@@ -155,3 +155,56 @@ document.querySelectorAll('form[data-upload-form]').forEach((form) => {
         button.textContent = button.dataset.uploadingText;
     });
 });
+
+// Dropdowns: <div data-dropdown> <button data-dropdown-toggle> <div data-dropdown-panel class="hidden">
+document.querySelectorAll('[data-dropdown]').forEach((root) => {
+    const toggle = root.querySelector('[data-dropdown-toggle]');
+    const panel = root.querySelector('[data-dropdown-panel]');
+    if (!toggle || !panel) return;
+
+    const setOpen = (open) => {
+        panel.classList.toggle('hidden', !open);
+        toggle.setAttribute('aria-expanded', String(open));
+    };
+
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setOpen(panel.classList.contains('hidden'));
+    });
+    document.addEventListener('click', (e) => {
+        if (!root.contains(e.target)) setOpen(false);
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !panel.classList.contains('hidden')) {
+            setOpen(false);
+            toggle.focus();
+        }
+    });
+});
+
+// Notification bell: refresh the unread badge every N seconds while the tab is visible
+document.querySelectorAll('[data-notification-bell]').forEach((bell) => {
+    const url = bell.dataset.countUrl;
+    const badge = bell.querySelector('[data-notification-badge]');
+    const seconds = Number(bell.dataset.pollSeconds) || 60;
+    if (!url || !badge) return;
+
+    const refresh = async () => {
+        if (document.hidden) return;
+        try {
+            const res = await fetch(url, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+            if (!res.ok) return;
+            const { unread } = await res.json();
+            badge.textContent = unread > 9 ? '9+' : String(unread);
+            badge.classList.toggle('hidden', !unread);
+        } catch {
+            // Offline or signed out — keep the last known count
+        }
+    };
+
+    setInterval(refresh, seconds * 1000);
+    document.addEventListener('visibilitychange', refresh);
+});

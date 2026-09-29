@@ -30,6 +30,7 @@
             ['label' => 'My Subjects', 'icon' => 'stack',     'route' => 'student.subjects.index', 'match' => ['student.subjects.*', 'student.lessons.*']],
             ['label' => 'Quizzes',     'icon' => 'clipboard', 'route' => 'student.quizzes.index',  'match' => 'student.quizzes.*'],
             ['label' => 'My Grades',   'icon' => 'chart',     'route' => 'student.grades'],
+            ['label' => 'Notifications', 'icon' => 'bell',    'route' => 'notifications.index', 'match' => 'notifications.*'],
         ],
     };
 @endphp
@@ -127,6 +128,11 @@
                     <span class="size-1.5 rounded-full bg-gold-500"></span>
                     {{ $currentTerm->name }}@if ($currentTerm->academic_year) · {{ $currentTerm->academic_year }}@endif
                 </span>
+            @endif
+
+            {{-- New lessons / quizzes / announcements --}}
+            @if ($user->isStudent())
+                <x-notification-bell :user="$user" />
             @endif
         </div>
     </header>
