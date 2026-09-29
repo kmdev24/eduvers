@@ -14,6 +14,9 @@ return [
 
         // Students notified per batch when fanning out (keeps memory flat).
         'chunk' => 200,
+
+        // Whether docker/entrypoint.sh starts a queue worker (shown on System check).
+        'queue_worker' => (bool) env('RUN_QUEUE_WORKER', true),
     ],
 
 ];

@@ -17,6 +17,7 @@
             ['label' => 'Academic Terms',   'icon' => 'calendar',     'route' => 'developer.terms.index',    'match' => 'developer.terms.*'],
             ['label' => 'Tracks & Strands', 'icon' => 'academic-cap', 'route' => 'developer.tracks.index',   'match' => 'developer.tracks.*'],
             ['label' => 'Announcements',    'icon' => 'megaphone',    'route' => 'announcements.index',      'match' => 'announcements.*'],
+            ['label' => 'System check',     'icon' => 'shield',       'route' => 'developer.system',         'match' => 'developer.system*'],
         ],
         UserRole::Teacher => [
             ['label' => 'Dashboard', 'icon' => 'home',      'route' => 'teacher.dashboard'],

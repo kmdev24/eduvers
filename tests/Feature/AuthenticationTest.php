@@ -36,6 +36,29 @@ class AuthenticationTest extends TestCase
         $this->get(route('dashboard'))->assertRedirect(route('teacher.dashboard'));
     }
 
+    public function test_login_returns_to_the_page_the_user_wanted_if_their_role_allows_it(): void
+    {
+        $teacher = User::factory()->teacher()->create(['password' => 'secret-pass']);
+
+        $this->get(route('teacher.lessons.index'))->assertRedirect(route('login'));
+
+        $this->post(route('login.store'), ['email' => $teacher->email, 'password' => 'secret-pass'])
+            ->assertRedirect(route('teacher.lessons.index'));
+    }
+
+    public function test_login_ignores_a_leftover_link_from_another_role(): void
+    {
+        $teacher = User::factory()->teacher()->create(['password' => 'secret-pass']);
+
+        // e.g. a developer's session expired on the developer dashboard
+        $this->get(route('developer.dashboard'))->assertRedirect(route('login'));
+
+        $this->post(route('login.store'), ['email' => $teacher->email, 'password' => 'secret-pass'])
+            ->assertRedirect(route('dashboard'));
+
+        $this->get(route('dashboard'))->assertRedirect(route('teacher.dashboard'));
+    }
+
     public function test_users_cannot_log_in_with_a_wrong_password(): void
     {
         $user = User::factory()->create();

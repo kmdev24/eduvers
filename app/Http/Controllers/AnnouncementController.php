@@ -47,7 +47,7 @@ class AnnouncementController extends Controller
         $notified = $notifier->announcementPosted($announcement);
 
         return redirect()->route('announcements.index')
-            ->with('status', 'Announcement posted.'.StudentNotifier::summary($notified));
+            ->with('status', 'Announcement posted.'.$notifier->summary($notified));
     }
 
     public function edit(Request $request, Announcement $announcement): View

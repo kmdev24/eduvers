@@ -12,6 +12,7 @@ use App\Notifications\CourseAnnouncementNotification;
 use App\Notifications\NewLessonNotification;
 use App\Notifications\NewQuizNotification;
 use App\Notifications\StudentActivityNotification;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Throwable;
@@ -29,6 +30,13 @@ use Throwable;
  */
 class StudentNotifier
 {
+    /** Cache keys read by Developer → System check. */
+    public const LAST_RUN_KEY   = 'eduvers:notifications:last-run';
+    public const LAST_ERROR_KEY = 'eduvers:notifications:last-error';
+
+    /** The error from the most recent notify call in this request (null = it worked). */
+    public ?Throwable $lastError = null;
+
     public function lessonPosted(Lesson $lesson): int
     {
         $sectionIds = SubjectTeacher::query()
@@ -65,10 +73,16 @@ class StudentNotifier
         };
     }
 
-    /** Flash-message suffix, e.g. " 32 students notified." (empty when nobody was). */
-    public static function summary(int $count): string
+    /** Flash-message suffix for the teacher, e.g. " 32 students notified." */
+    public function summary(int $count): string
     {
-        return $count > 0 ? ' '.$count.' '.Str::plural('student', $count).' notified.' : '';
+        if ($this->lastError) {
+            return ' But students could not be notified. A developer can see why under System check.';
+        }
+
+        return $count > 0
+            ? ' '.$count.' '.Str::plural('student', $count).' notified.'
+            : ' No students were notified (no students match this audience).';
     }
 
     /**
@@ -76,11 +90,14 @@ class StudentNotifier
      */
     private function notifySections(StudentActivityNotification $notification, ?array $sectionIds): int
     {
+        $this->lastError = null;
+        $notified = 0;
+
         if ($sectionIds !== null && $sectionIds === []) {
+            $this->remember($notification, $sectionIds, 0);
+
             return 0;
         }
-
-        $notified = 0;
 
         try {
             User::query()
@@ -92,8 +109,38 @@ class StudentNotifier
                 });
         } catch (Throwable $e) {
             report($e);
+            $this->lastError = $e;
         }
 
+        $this->remember($notification, $sectionIds, $notified);
+
         return $notified;
+    }
+
+    /** Keep the last run (and last failure) so Developer → System check can show them. */
+    private function remember(StudentActivityNotification $notification, ?array $sectionIds, int $notified): void
+    {
+        try {
+            Cache::put(self::LAST_RUN_KEY, [
+                'at'       => now()->toIso8601String(),
+                'kind'     => $notification->data['kind'],
+                'title'    => $notification->data['title'],
+                'sections' => $sectionIds === null ? 'all students' : implode(', ', $sectionIds),
+                'notified' => $notified,
+                'error'    => $this->lastError?->getMessage(),
+            ], now()->addDays(30));
+
+            if ($this->lastError) {
+                Cache::put(self::LAST_ERROR_KEY, [
+                    'at'        => now()->toIso8601String(),
+                    'title'     => $notification->data['title'],
+                    'exception' => $this->lastError::class,
+                    'message'   => $this->lastError->getMessage(),
+                    'where'     => $this->lastError->getFile().':'.$this->lastError->getLine(),
+                ], now()->addDays(30));
+            }
+        } catch (Throwable) {
+            // Diagnostics only — never break posting
+        }
     }
 }

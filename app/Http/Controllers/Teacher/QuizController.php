@@ -106,11 +106,12 @@ class QuizController extends Controller
         $changes = $quiz->sections()->sync($data['sections'] ?? []);
 
         // Sections added to a quiz that is already live hear about it now
-        $notified = $quiz->is_published && $changes['attached'] !== []
-            ? $notifier->quizPublished($quiz, $changes['attached'])
-            : 0;
+        $note = '';
+        if ($quiz->is_published && $changes['attached'] !== []) {
+            $note = $notifier->summary($notifier->quizPublished($quiz, $changes['attached']));
+        }
 
-        return back()->with('status', 'Quiz settings saved.'.StudentNotifier::summary($notified));
+        return back()->with('status', 'Quiz settings saved.'.$note);
     }
 
     /** Publish or unpublish. */
@@ -131,9 +132,9 @@ class QuizController extends Controller
 
             $quiz->update(['is_published' => true, 'published_at' => now()]);
 
-            $notified = $firstPublish ? $notifier->quizPublished($quiz) : 0;
+            $note = $firstPublish ? $notifier->summary($notifier->quizPublished($quiz)) : '';
 
-            return back()->with('status', 'Quiz published. Students in the selected sections can now take it.'.StudentNotifier::summary($notified));
+            return back()->with('status', 'Quiz published. Students in the selected sections can now take it.'.$note);
         }
 
         $quiz->update(['is_published' => false]);

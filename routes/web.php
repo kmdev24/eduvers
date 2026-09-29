@@ -62,6 +62,10 @@ Route::middleware('auth')->group(function () {
         ->group(function () {
             Route::get('/dashboard', Developer\DashboardController::class)->name('dashboard');
 
+            // Notification & email health check (+ send a test)
+            Route::get('/system', [Developer\SystemCheckController::class, 'index'])->name('system');
+            Route::post('/system/test-notification', [Developer\SystemCheckController::class, 'test'])->name('system.test');
+
             Route::resource('users', Developer\UserController::class)->except('show');
             Route::resource('sections', Developer\SectionController::class)->except('show');
             Route::resource('subjects', Developer\SubjectController::class)->except('show');

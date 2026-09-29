@@ -57,7 +57,7 @@ class LessonController extends Controller
         $notified = $notifier->lessonPosted($lesson);
 
         return redirect()->route('teacher.lessons.show', $lesson)
-            ->with('status', 'Lesson published.'.StudentNotifier::summary($notified));
+            ->with('status', 'Lesson published.'.$notifier->summary($notified));
     }
 
     public function show(Lesson $lesson): View

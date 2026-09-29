@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Tests\TestCase;
@@ -176,7 +177,7 @@ class NotificationTest extends TestCase
 
         $this->post(route('announcements.store'), [
             'title' => 'Faculty meeting', 'body' => 'Room 101.', 'audience' => AnnouncementAudience::Teachers->value,
-        ])->assertSessionHas('status', 'Announcement posted.');
+        ])->assertSessionHas('status', 'Announcement posted. No students were notified (no students match this audience).');
         Notification::assertCount(5);
     }
 
@@ -435,6 +436,65 @@ class NotificationTest extends TestCase
             ->assertSee('1 unread')
             ->assertSee('Recursion')
             ->assertDontSee('<html', false); // just the dropdown, not a whole page
+    }
+
+    public function test_a_notification_failure_is_reported_to_the_teacher_and_on_system_check(): void
+    {
+        // Simulate a broken mail/queue setup
+        Notification::shouldReceive('send')->andThrow(new RuntimeException('Queue is unreachable'));
+
+        $this->actingAs($this->teacher)->post(route('teacher.lessons.store'), [
+            'title' => 'Loops', 'subject_id' => $this->subject->id,
+        ])->assertRedirect()->assertSessionHas('status', fn ($s) => str_contains($s, 'Lesson published. But students could not be notified.'));
+
+        $this->assertSame(1, Lesson::count()); // the lesson itself is still saved
+
+        $this->actingAs(User::factory()->developer()->create())->get(route('developer.system'))
+            ->assertOk()
+            ->assertSee('Last error')
+            ->assertSee('While notifying “Loops”', false)
+            ->assertSee('Queue is unreachable');
+    }
+
+    public function test_system_check_flags_a_missing_notifications_table(): void
+    {
+        Schema::drop('notifications');
+
+        $this->actingAs(User::factory()->developer()->create())->get(route('developer.system'))
+            ->assertOk()->assertSee('table missing');
+    }
+
+    public function test_system_check_shows_recent_notifications_and_last_run(): void
+    {
+        app(StudentNotifier::class)->lessonPosted($this->makeLesson('Loops'));
+
+        $this->actingAs(User::factory()->developer()->create())->get(route('developer.system'))
+            ->assertOk()
+            ->assertSee('3 total')
+            ->assertSee('Lesson: Loops')
+            ->assertSee($this->studentA1->name);
+
+        foreach ([$this->teacher, $this->studentA1] as $user) {
+            $this->actingAs($user)->get(route('developer.system'))->assertForbidden();
+        }
+    }
+
+    public function test_system_check_test_notification_reports_success_and_email_errors(): void
+    {
+        $developer = User::factory()->developer()->create();
+
+        $this->actingAs($developer)->from(route('developer.system'))
+            ->post(route('developer.system.test'), ['student_id' => $this->studentB->id, 'channels' => 'database'])
+            ->assertRedirect(route('developer.system'))
+            ->assertSessionHas('status', fn ($s) => str_contains($s, 'In-app: sent ✓'));
+        $this->assertSame('EduVers notifications are working', $this->studentB->notifications()->first()->data['title']);
+
+        // Email through Brevo with a bad key: the error is shown on screen
+        config(['mail.default' => 'brevo', 'mail.mailers.brevo.key' => 'bad']);
+        Http::fake(['api.brevo.com/*' => Http::response(['message' => 'Key not found'], 401)]);
+
+        $this->post(route('developer.system.test'), ['student_id' => $this->studentB->id, 'channels' => 'both'])
+            ->assertSessionHas('error', fn ($s) => str_contains($s, 'In-app: sent ✓') && str_contains($s, 'Email FAILED') && str_contains($s, 'Key not found'));
     }
 
     public function test_marking_one_notification_read(): void
