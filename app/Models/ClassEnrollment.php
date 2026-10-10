@@ -57,8 +57,18 @@ class ClassEnrollment extends Model
         return $enrollment;
     }
 
-    public function decide(EnrollmentStatus $status, User $by): void
+    /** Record the decision. Returns false when the request already had this status (e.g. a double-click). */
+    public function decide(EnrollmentStatus $status, User $by): bool
     {
-        $this->update(['status' => $status, 'decided_by' => $by->id, 'decided_at' => now()]);
+        $decision = ['status' => $status, 'decided_by' => $by->id, 'decided_at' => now()];
+
+        // Conditional update: two clicks at once still decide (and notify) once
+        if (! static::whereKey($this->getKey())->where('status', '!=', $status)->update($decision)) {
+            return false;
+        }
+
+        $this->forceFill($decision)->syncOriginal();
+
+        return true;
     }
 }

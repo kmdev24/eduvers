@@ -25,12 +25,14 @@ class EnrollmentController extends Controller
         $selected = $classes->firstWhere('id', $request->integer('class')) ?? $classes->first();
         $search   = trim((string) $request->query('q'));
 
-        // Students not in the class yet, without a waiting or approved request for it
+        // Students of the class's year level, not in it yet, without a waiting or approved request for it
         $students = $selected && $search !== ''
             ? User::students()
                 ->with('section')
                 ->where(fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"))
-                ->where(fn ($q) => $q->whereNull('section_id')->orWhere('section_id', '!=', $selected->section_id))
+                ->where(fn ($q) => $q->whereNull('section_id')->orWhereHas('section', fn ($q) => $q
+                    ->where('grade_level_id', $selected->subject->grade_level_id)
+                    ->where('id', '!=', $selected->section_id)))
                 ->whereDoesntHave('classEnrollments', fn ($q) => $q
                     ->where('subject_teacher_id', $selected->id)
                     ->where('status', '!=', EnrollmentStatus::Rejected))
@@ -56,10 +58,14 @@ class EnrollmentController extends Controller
         ]);
 
         $class   = $request->user()->teachingAssignments()->with('subject')->findOrFail($data['class_id']);
-        $student = User::students()->findOrFail($data['student_id']);
+        $student = User::students()->with('section')->findOrFail($data['student_id']);
 
         if ((int) $student->section_id === (int) $class->section_id) {
             return back()->with('error', "{$student->name} is already in this class through their section.");
+        }
+
+        if ($student->section && (int) $student->section->grade_level_id !== (int) $class->subject->grade_level_id) {
+            return back()->with('error', "{$student->name} is not in the same year level as this class.");
         }
 
         return ClassEnrollment::request($student, $class, $request->user())

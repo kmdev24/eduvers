@@ -44,8 +44,8 @@ class EnrollmentController extends Controller
     }
 
     /**
-     * Classes the student may apply for: subjects of their course (strand) or core subjects,
-     * taught in another section, for a subject they don't take yet.
+     * Classes the student may apply for: subjects of their own year level, of their course
+     * (strand) or core, taught in another section, for a subject they don't take yet.
      */
     private function openClasses(User $student): Builder
     {
@@ -56,8 +56,10 @@ class EnrollmentController extends Controller
         return SubjectTeacher::query()
             ->where('section_id', '!=', $student->section_id)
             ->whereNotIn('subject_id', $student->studentClasses()->select('subject_id'))
-            ->whereHas('subject', fn (Builder $q) => $q->where(fn (Builder $q) => $q
-                ->where('track_strand_id', $student->section->track_strand_id)
-                ->orWhereNull('track_strand_id')));
+            ->whereHas('subject', fn (Builder $q) => $q
+                ->where('grade_level_id', $student->section->grade_level_id)
+                ->where(fn (Builder $q) => $q
+                    ->where('track_strand_id', $student->section->track_strand_id)
+                    ->orWhereNull('track_strand_id')));
     }
 }

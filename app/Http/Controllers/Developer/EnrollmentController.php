@@ -36,7 +36,10 @@ class EnrollmentController extends Controller
             'status' => ['required', Rule::in([EnrollmentStatus::Approved->value, EnrollmentStatus::Rejected->value])],
         ]);
 
-        $enrollment->decide(EnrollmentStatus::from($data['status']), $request->user());
+        if (! $enrollment->decide(EnrollmentStatus::from($data['status']), $request->user())) {
+            return back(); // already decided this way: the first click said so, and notified
+        }
+
         $enrollment->load(['student', 'offering.subject']);
 
         try {

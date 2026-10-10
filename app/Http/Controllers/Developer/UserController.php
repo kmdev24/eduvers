@@ -77,6 +77,9 @@ class UserController extends Controller
             $user->teachingAssignments()->delete();
         }
 
+        // A student moved into a section no longer needs a request to join that section's classes
+        $user->classEnrollments()->whereHas('offering', fn ($q) => $q->where('section_id', $user->section_id))->delete();
+
         return redirect()->route('developer.users.index')
             ->with('status', "{$user->name}'s account was updated.");
     }

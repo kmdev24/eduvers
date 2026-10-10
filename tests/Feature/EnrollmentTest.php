@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\EnrollmentStatus;
 use App\Enums\LevelType;
 use App\Enums\TrackCategory;
+use App\Enums\UserRole;
 use App\Models\AcademicTerm;
 use App\Models\ClassEnrollment;
 use App\Models\GradeLevel;
@@ -102,10 +103,20 @@ class EnrollmentTest extends TestCase
     {
         $other   = User::factory()->teacher()->create();
         $student = User::factory()->student($this->sectionB)->create();
+        $class   = $this->teacher->teachingAssignments()->first();
 
         $this->actingAs($other)
-            ->post(route('teacher.enrollments.store'), ['class_id' => $this->teacher->teachingAssignments()->first()->id, 'student_id' => $student->id])
+            ->post(route('teacher.enrollments.store'), ['class_id' => $class->id, 'student_id' => $student->id])
             ->assertNotFound();
+
+        // ... and only students of the class's own year level
+        $nextLevel   = GradeLevel::create(['name' => 'Grade 12', 'level_type' => LevelType::Shs]);
+        $nextSection = Section::create(['name' => 'ICT 12-A', 'capacity' => 40, 'grade_level_id' => $nextLevel->id, 'track_strand_id' => $this->sectionA->track_strand_id]);
+        $senior      = User::factory()->student($nextSection)->create();
+
+        $this->actingAs($this->teacher)
+            ->post(route('teacher.enrollments.store'), ['class_id' => $class->id, 'student_id' => $senior->id])
+            ->assertSessionHas('error');
 
         $this->assertDatabaseCount('class_enrollments', 0);
     }
@@ -121,10 +132,18 @@ class EnrollmentTest extends TestCase
         $otherSubject = Subject::create(['code' => 'ABM-ACC1', 'name' => 'Accounting 1', 'grade_level_id' => $this->subject->grade_level_id, 'track_strand_id' => $otherStrand->id, 'academic_term_id' => $this->subject->academic_term_id]);
         $otherClass   = $otherSubject->assignTeacher(User::factory()->teacher()->create(), $otherSection);
 
+        // Neither is a class of the same strand taught in another year level
+        $nextLevel   = GradeLevel::create(['name' => 'Grade 12', 'level_type' => LevelType::Shs]);
+        $nextSection = Section::create(['name' => 'ICT 12-A', 'capacity' => 40, 'grade_level_id' => $nextLevel->id, 'track_strand_id' => $this->subject->track_strand_id]);
+        $nextSubject = Subject::create(['code' => 'ICT-PROG2', 'name' => 'Computer Programming 2', 'grade_level_id' => $nextLevel->id, 'track_strand_id' => $this->subject->track_strand_id, 'academic_term_id' => $this->subject->academic_term_id]);
+        $nextClass   = $nextSubject->assignTeacher(User::factory()->teacher()->create(), $nextSection);
+
         $this->actingAs($student)->get(route('student.enrollments.index'))
-            ->assertOk()->assertSee('Computer Programming 1')->assertDontSee('Accounting 1');
+            ->assertOk()->assertSee('Computer Programming 1')
+            ->assertDontSee('Accounting 1')->assertDontSee('Computer Programming 2');
 
         $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $otherClass->id])->assertNotFound();
+        $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $nextClass->id])->assertNotFound();
 
         $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $class->id])->assertSessionHas('status');
         $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $class->id])->assertSessionHas('error'); // already waiting
@@ -170,6 +189,10 @@ class EnrollmentTest extends TestCase
                 && $n->url() === route('student.subjects.show', $this->subject)
                 && in_array('database', $channels, true);
         });
+
+        // Clicking Approve again decides nothing and does not notify twice
+        $this->actingAs($this->developer)->patch(route('developer.enrollments.update', $request), ['status' => 'approved']);
+        Notification::assertCount(1);
     }
 
     public function test_joined_students_count_on_the_teacher_dashboard_and_master_list(): void
@@ -190,6 +213,20 @@ class EnrollmentTest extends TestCase
         $csv = $this->actingAs($this->teacher)->get(route('sections.masterlist', [$this->sectionA, 'format' => 'csv']))->streamedContent();
         $this->assertStringContainsString('Ben Joined', $csv);
         $this->assertStringContainsString('ICT-PROG1', $csv);
+
+        // Moving the student into the section drops the now-pointless request, so nobody is counted twice
+        $this->actingAs($this->developer)->put(route('developer.users.update', $joined), [
+            'name' => $joined->name, 'email' => $joined->email, 'role' => UserRole::Student->value, 'section_id' => $this->sectionA->id,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('class_enrollments', 0);
+
+        $this->actingAs($this->teacher)->get(route('teacher.dashboard'))
+            ->assertViewHas('stats', fn (array $stats) => $stats['students'] === 2)
+            ->assertViewHas('studentCounts', fn ($counts) => $counts[$class->id] === 2);
+
+        $csv = $this->actingAs($this->teacher)->get(route('sections.masterlist', [$this->sectionA, 'format' => 'csv']))->streamedContent();
+        $this->assertSame(1, substr_count($csv, 'Ben Joined'));
     }
 
     /* ------------------------------------------------------------------ */
