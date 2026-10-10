@@ -25,10 +25,10 @@
 
     {{-- Stats --}}
     <div class="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <x-stat-card label="Subjects" :value="$stats['subjects']" icon="stack" hint="In your section" />
-        <x-stat-card label="Lessons" :value="$stats['lessons']" icon="book-open" hint="Available to read" />
-        <x-stat-card label="Pending quizzes" :value="$stats['pending']" icon="clock" hint="Not yet taken" />
-        <x-stat-card label="Average score" :value="$stats['average'] !== null ? $stats['average'].'%' : '—'" icon="chart" hint="Across submitted quizzes" />
+        <x-stat-card label="Subjects" :value="$stats['subjects']" icon="stack" hint="Your classes" :href="route('student.subjects.index')" />
+        <x-stat-card label="Lessons" :value="$stats['lessons']" icon="book-open" hint="Available to read" :href="route('student.subjects.index')" />
+        <x-stat-card label="Pending quizzes" :value="$stats['pending']" icon="clock" hint="Not yet taken" :href="route('student.quizzes.index')" />
+        <x-stat-card label="Average score" :value="$stats['average'] !== null ? $stats['average'].'%' : '—'" icon="chart" hint="Across submitted quizzes" :href="route('student.grades')" />
     </div>
 
     {{-- Announcements --}}

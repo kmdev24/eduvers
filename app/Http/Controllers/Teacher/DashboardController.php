@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
+use App\Models\ClassEnrollment;
 use App\Models\Lesson;
 use App\Models\Quiz;
 use App\Models\QuizSubmission;
@@ -24,17 +25,25 @@ class DashboardController extends Controller
         $sectionIds = $assignments->pluck('section_id')->unique()->values();
         $subjectIds = $assignments->pluck('subject_id')->unique()->values();
 
-        // [section_id => number of students]
-        $studentCounts = User::students()
+        // Students a developer approved into one of these classes from another section
+        $joined = ClassEnrollment::approved()->whereIn('subject_teacher_id', $assignments->pluck('id'))->get(['student_id', 'subject_teacher_id']);
+
+        // [class id => number of students]: the section's, plus approved joiners
+        $sectionCounts = User::students()
             ->whereIn('section_id', $sectionIds)
             ->selectRaw('section_id, COUNT(*) as total')
             ->groupBy('section_id')
             ->toBase()
             ->pluck('total', 'section_id');
+        $studentCounts = $assignments->mapWithKeys(fn ($class) => [
+            $class->id => (int) ($sectionCounts[$class->section_id] ?? 0) + $joined->where('subject_teacher_id', $class->id)->count(),
+        ]);
+
+        $myStudents = fn ($q) => $q->where(fn ($q) => $q->whereIn('section_id', $sectionIds)->orWhereIn('id', $joined->pluck('student_id')));
 
         $stats = [
             'classes'  => $assignments->count(),
-            'students' => (int) $studentCounts->sum(),
+            'students' => User::students()->where($myStudents)->count(), // each student once
             'lessons'  => Lesson::whereIn('subject_id', $subjectIds)->count(),
             'quizzes'  => Quiz::whereIn('subject_id', $subjectIds)->count(),
         ];
@@ -43,7 +52,7 @@ class DashboardController extends Controller
         $recentSubmissions = QuizSubmission::query()
             ->with(['student', 'quiz' => fn ($q) => $q->withCount('questions'), 'quiz.subject'])
             ->whereHas('quiz', fn ($q) => $q->whereIn('subject_id', $subjectIds))
-            ->whereHas('student', fn ($q) => $q->whereIn('section_id', $sectionIds))
+            ->whereHas('student', $myStudents)
             ->latest()
             ->take(6)
             ->get();

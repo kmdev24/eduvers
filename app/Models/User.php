@@ -98,20 +98,24 @@ class User extends Authenticatable
         return $this->hasMany(QuizSubmission::class, 'student_id');
     }
 
-    /** Whether the student's section takes this subject. */
-    public function takesSubject(int $subjectId): bool
+    /** Requests to join classes outside the student's section. */
+    public function classEnrollments(): HasMany
     {
-        return $this->section_id !== null
-            && SubjectTeacher::where('section_id', $this->section_id)->where('subject_id', $subjectId)->exists();
+        return $this->hasMany(ClassEnrollment::class, 'student_id');
     }
 
-    /** Subjects offered to the student's section (query builder). */
-    public function enrolledSubjects(): Builder
+    /** Classes the student attends: their section's, plus ones a developer approved. */
+    public function studentClasses(): Builder
     {
-        return Subject::query()->whereHas(
-            'assignments',
-            fn (Builder $q) => $q->where('section_id', $this->section_id)
-        );
+        return SubjectTeacher::query()->where(fn (Builder $q) => $q
+            ->where('section_id', $this->section_id ?? 0) // no section yet: matches nothing
+            ->orWhereIn('id', ClassEnrollment::approved()->where('student_id', $this->id)->select('subject_teacher_id')));
+    }
+
+    /** Whether the student attends a class of this subject. */
+    public function takesSubject(int $subjectId): bool
+    {
+        return $this->studentClasses()->where('subject_id', $subjectId)->exists();
     }
 
     /* ------------------------------------------------------------------ */

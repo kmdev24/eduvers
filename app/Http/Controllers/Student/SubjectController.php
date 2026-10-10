@@ -16,13 +16,11 @@ class SubjectController extends Controller
     {
         $student = $request->user()->load('section.gradeLevel', 'section.trackStrand');
 
-        $classes = $student->section_id
-            ? SubjectTeacher::with(['subject.academicTerm', 'teacher'])
-                ->where('section_id', $student->section_id)
-                ->get()
-                ->sortBy(fn (SubjectTeacher $c) => $c->subject->name)
-                ->values()
-            : collect();
+        $classes = $student->studentClasses()
+            ->with(['subject.academicTerm', 'teacher', 'section'])
+            ->get()
+            ->sortBy(fn (SubjectTeacher $c) => $c->subject->name)
+            ->values();
 
         $subjectIds = $classes->pluck('subject_id');
 
@@ -30,7 +28,7 @@ class SubjectController extends Controller
             ->selectRaw('subject_id, COUNT(*) as total')->groupBy('subject_id')
             ->toBase()->pluck('total', 'subject_id');
 
-        $quizCounts = Quiz::published()->forSection($student->section_id)->whereIn('subject_id', $subjectIds)
+        $quizCounts = Quiz::published()->visibleTo($student)->whereIn('subject_id', $subjectIds)
             ->selectRaw('subject_id, COUNT(*) as total')->groupBy('subject_id')
             ->toBase()->pluck('total', 'subject_id');
 
@@ -40,14 +38,11 @@ class SubjectController extends Controller
     public function show(Request $request, Subject $subject): View
     {
         $student = $request->user();
-        abort_unless($student->takesSubject($subject->id), 403, 'This subject is not offered to your section.');
+        abort_unless($student->takesSubject($subject->id), 403, 'You are not enrolled in this subject.');
 
-        $teacher = SubjectTeacher::with('teacher')
-            ->where('section_id', $student->section_id)
-            ->where('subject_id', $subject->id)
-            ->first()?->teacher;
+        $teacher = $student->studentClasses()->with('teacher')->where('subject_id', $subject->id)->first()?->teacher;
 
-        $quizzes = Quiz::published()->forSection($student->section_id)
+        $quizzes = Quiz::published()->visibleTo($student)
             ->where('subject_id', $subject->id)
             ->withCount('questions')
             ->latest('published_at')

@@ -12,10 +12,10 @@
 
     {{-- Stats --}}
     <div class="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <x-stat-card label="Classes" :value="$stats['classes']" icon="building" hint="Subject × section assignments" />
-        <x-stat-card label="Students" :value="$stats['students']" icon="users" hint="Across all your sections" />
-        <x-stat-card label="Lessons" :value="$stats['lessons']" icon="book-open" hint="Published in your subjects" />
-        <x-stat-card label="Quizzes" :value="$stats['quizzes']" icon="clipboard" hint="Created in your subjects" />
+        <x-stat-card label="Classes" :value="$stats['classes']" icon="building" hint="Subject × section assignments" :href="route('teacher.gradebook')" />
+        <x-stat-card label="Students" :value="$stats['students']" icon="users" hint="Across all your sections" :href="route('teacher.gradebook')" />
+        <x-stat-card label="Lessons" :value="$stats['lessons']" icon="book-open" hint="Published in your subjects" :href="route('teacher.lessons.index')" />
+        <x-stat-card label="Quizzes" :value="$stats['quizzes']" icon="clipboard" hint="Created in your subjects" :href="route('teacher.quizzes.index')" />
     </div>
 
     {{-- Announcements --}}
@@ -58,7 +58,7 @@
                                 </div>
                                 <div>
                                     <dt class="text-xs text-slate-400">Students</dt>
-                                    <dd class="mt-0.5 font-medium tabular-nums text-ink-800">{{ (int) ($studentCounts[$offering->section_id] ?? 0) }} / {{ $offering->section->capacity }}</dd>
+                                    <dd class="mt-0.5 font-medium tabular-nums text-ink-800">{{ $studentCounts[$offering->id] ?? 0 }} / {{ $offering->section->capacity }}</dd>
                                 </div>
                                 <div class="col-span-2">
                                     <dt class="text-xs text-slate-400">Level &amp; strand</dt>

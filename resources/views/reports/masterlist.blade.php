@@ -44,6 +44,36 @@
     </table>
     </div>
 
+    @if ($joined->isNotEmpty())
+        <div class="mt-8">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-luxe text-slate-500">Joined from other sections (approved)</p>
+            <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-sm">
+                <thead>
+                    <tr class="bg-ink-900 text-ivory">
+                        <th class="w-12 border border-ink-800 px-3 py-2 text-left">No.</th>
+                        <th class="border border-ink-800 px-3 py-2 text-left">Student name</th>
+                        <th class="border border-ink-800 px-3 py-2 text-left">Email</th>
+                        <th class="border border-ink-800 px-3 py-2 text-left">Own section</th>
+                        <th class="border border-ink-800 px-3 py-2 text-left">Class joined</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($joined as $n => $enrollment)
+                        <tr class="even:bg-ivory-50">
+                            <td class="border border-ivory-300 px-3 py-2 tabular-nums">{{ $n + 1 }}</td>
+                            <td class="border border-ivory-300 px-3 py-2 font-medium">{{ $enrollment->student->name }}</td>
+                            <td class="border border-ivory-300 px-3 py-2 text-slate-600">{{ $enrollment->student->email }}</td>
+                            <td class="border border-ivory-300 px-3 py-2">{{ $enrollment->student->section?->name ?? 'None' }}</td>
+                            <td class="border border-ivory-300 px-3 py-2">{{ $enrollment->offering->subject->code }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            </div>
+        </div>
+    @endif
+
     @if ($teachers->isNotEmpty())
         <div class="mt-8">
             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Subjects &amp; teachers</p>

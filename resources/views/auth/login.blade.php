@@ -83,7 +83,10 @@
                 </div>
 
                 <div>
-                    <label for="password" class="mb-2 block text-sm font-medium text-ink-800">Password</label>
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                        <label for="password" class="block text-sm font-medium text-ink-800">Password</label>
+                        <a href="{{ route('password.request') }}" class="text-sm font-medium text-gold-700 hover:text-gold-900">Forgot password?</a>
+                    </div>
                     <div class="relative">
                         <x-icon name="lock" class="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-slate-400" />
                         <input id="password" name="password" type="password" required autocomplete="current-password"
@@ -95,11 +98,6 @@
                     @enderror
                 </div>
 
-                <label class="flex cursor-pointer items-center gap-3 text-sm text-slate-600">
-                    <input type="checkbox" name="remember" class="size-4 rounded border-ivory-300 text-gold-600 focus:ring-gold-500/40">
-                    Keep me signed in
-                </label>
-
                 <button type="submit" class="btn-gold w-full py-3.5 text-base">
                     Sign in
                     <x-icon name="arrow-right" class="size-4" />
@@ -108,7 +106,7 @@
 
             <div class="mt-10 flex items-start gap-3 rounded-xl border border-ivory-300 bg-white/60 p-4 text-xs leading-relaxed text-slate-500">
                 <x-icon name="shield" class="size-5 shrink-0 text-champagne" />
-                <p>Forgot your password or need an account? Please contact the EduVers administrator or the Registrar's Office.</p>
+                <p>Need an account, or no longer have access to your email? Please contact the EduVers administrator or the Registrar's Office.</p>
             </div>
         </div>
     </section>

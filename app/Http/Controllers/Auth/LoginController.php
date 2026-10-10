@@ -41,7 +41,7 @@ class LoginController extends Controller
             ]);
         }
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::attempt($credentials)) {
             RateLimiter::hit($throttleKey);
 
             throw ValidationException::withMessages([

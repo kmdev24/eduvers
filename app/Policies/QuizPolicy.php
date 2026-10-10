@@ -17,12 +17,11 @@ class QuizPolicy
         return $this->update($user, $quiz);
     }
 
-    /** A student may take a published quiz that was published to their section. */
+    /** A student may take a published quiz for their section, or for a class they joined. */
     public function take(User $user, Quiz $quiz): bool
     {
         return $user->isStudent()
             && $quiz->is_published
-            && $user->section_id !== null
-            && $quiz->sections()->where('sections.id', $user->section_id)->exists();
+            && Quiz::visibleTo($user)->whereKey($quiz->id)->exists();
     }
 }

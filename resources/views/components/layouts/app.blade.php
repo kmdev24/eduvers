@@ -14,6 +14,7 @@
             ['label' => 'Users',            'icon' => 'users',        'route' => 'developer.users.index',    'match' => 'developer.users.*'],
             ['label' => 'Sections',         'icon' => 'building',     'route' => 'developer.sections.index', 'match' => 'developer.sections.*'],
             ['label' => 'Subjects',         'icon' => 'stack',        'route' => 'developer.subjects.index', 'match' => 'developer.subjects.*'],
+            ['label' => 'Enrollment requests', 'icon' => 'user-plus', 'route' => 'developer.enrollments.index', 'match' => 'developer.enrollments.*'],
             ['label' => 'Academic Terms',   'icon' => 'calendar',     'route' => 'developer.terms.index',    'match' => 'developer.terms.*'],
             ['label' => 'Tracks & Strands', 'icon' => 'academic-cap', 'route' => 'developer.tracks.index',   'match' => 'developer.tracks.*'],
             ['label' => 'Announcements',    'icon' => 'megaphone',    'route' => 'announcements.index',      'match' => 'announcements.*'],
@@ -24,6 +25,7 @@
             ['label' => 'Lessons',   'icon' => 'book-open', 'route' => 'teacher.lessons.index', 'match' => 'teacher.lessons.*'],
             ['label' => 'Quizzes',   'icon' => 'clipboard', 'route' => 'teacher.quizzes.index', 'match' => 'teacher.quizzes.*'],
             ['label' => 'Gradebook',     'icon' => 'chart',     'route' => 'teacher.gradebook', 'match' => 'teacher.gradebook*'],
+            ['label' => 'Add students',  'icon' => 'user-plus', 'route' => 'teacher.enrollments.index', 'match' => 'teacher.enrollments.*'],
             ['label' => 'Announcements', 'icon' => 'megaphone', 'route' => 'announcements.index', 'match' => 'announcements.*'],
         ],
         UserRole::Student => [
@@ -31,6 +33,7 @@
             ['label' => 'My Subjects', 'icon' => 'stack',     'route' => 'student.subjects.index', 'match' => ['student.subjects.*', 'student.lessons.*']],
             ['label' => 'Quizzes',     'icon' => 'clipboard', 'route' => 'student.quizzes.index',  'match' => 'student.quizzes.*'],
             ['label' => 'My Grades',   'icon' => 'chart',     'route' => 'student.grades'],
+            ['label' => 'Apply for a subject', 'icon' => 'plus', 'route' => 'student.enrollments.index', 'match' => 'student.enrollments.*'],
             ['label' => 'Notifications', 'icon' => 'bell',    'route' => 'notifications.index', 'match' => 'notifications.*'],
         ],
     };
@@ -48,7 +51,7 @@
     @fonts
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="h-full bg-ivory font-sans text-ink-900 antialiased">
+<body class="h-full bg-ivory font-sans text-ink-900 antialiased" data-idle-minutes="{{ config('eduvers.idle_minutes') }}" data-ping-url="{{ route('session.ping') }}">
 
 {{-- Mobile backdrop --}}
 <div data-sidebar-overlay class="fixed inset-0 z-40 hidden bg-ink-950/60 backdrop-blur-sm lg:hidden"></div>

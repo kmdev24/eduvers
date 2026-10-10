@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ClassEnrollment;
 use App\Models\Section;
 use App\Models\SubjectTeacher;
 use App\Support\Csv;
@@ -28,19 +29,34 @@ class MasterListController extends Controller
         $section->load(['gradeLevel', 'trackStrand']);
         $students = $section->students()->orderBy('name')->get();
 
+        // Students from other sections a developer approved into one of this section's classes
+        $joined = ClassEnrollment::approved()
+            ->with(['student.section.gradeLevel', 'student.section.trackStrand', 'offering.subject'])
+            ->whereHas('offering', fn ($q) => $q->where('section_id', $section->id))
+            ->get()
+            ->sortBy(fn (ClassEnrollment $e) => $e->student->name.' '.$e->offering->subject->code)
+            ->values();
+
         if ($request->query('format') === 'csv') {
+            $own = $students->values()->map(fn ($s) => [
+                $s->name, $s->email, $section->name, $section->gradeLevel->name, $section->trackStrand->name, '',
+            ]);
+            $extra = $joined->map(fn (ClassEnrollment $e) => [
+                $e->student->name, $e->student->email, $e->student->section?->name ?? '',
+                $e->student->section?->gradeLevel?->name ?? '', $e->student->section?->trackStrand?->name ?? '', $e->offering->subject->code,
+            ]);
+
             return Csv::download(
                 Str::slug($section->name.' master list').'-'.now()->format('Y-m-d').'.csv',
-                ['No.', 'Student name', 'Email', 'Section', 'Grade level', 'Track / strand'],
-                $students->values()->map(fn ($s, $i) => [
-                    $i + 1, $s->name, $s->email, $section->name, $section->gradeLevel->name, $section->trackStrand->name,
-                ]),
+                ['No.', 'Student name', 'Email', 'Section', 'Grade level', 'Track / strand', 'Joined class'],
+                $own->concat($extra)->values()->map(fn ($row, $i) => [$i + 1, ...$row]),
             );
         }
 
         return view('reports.masterlist', [
             'section'  => $section,
             'students' => $students,
+            'joined'   => $joined,
             'teachers' => SubjectTeacher::with(['subject', 'teacher'])
                 ->where('section_id', $section->id)
                 ->get()

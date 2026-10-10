@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EnrollmentStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -57,6 +58,21 @@ class Quiz extends Model
     public function scopeForSection(Builder $query, ?int $sectionId): Builder
     {
         return $query->whereHas('sections', fn (Builder $q) => $q->where('sections.id', $sectionId));
+    }
+
+    /** Quizzes a student can see: published to their section, or to a class they joined (approved). */
+    public function scopeVisibleTo(Builder $query, User $student): Builder
+    {
+        return $query->where(fn (Builder $q) => $q
+            ->forSection($student->section_id)
+            ->orWhereExists(fn ($joined) => $joined->selectRaw('1')
+                ->from('class_enrollments')
+                ->join('subject_teacher', 'subject_teacher.id', '=', 'class_enrollments.subject_teacher_id')
+                ->join('quiz_section', 'quiz_section.section_id', '=', 'subject_teacher.section_id')
+                ->whereColumn('quiz_section.quiz_id', 'quizzes.id')
+                ->whereColumn('subject_teacher.subject_id', 'quizzes.subject_id')
+                ->where('class_enrollments.student_id', $student->id)
+                ->where('class_enrollments.status', EnrollmentStatus::Approved->value)));
     }
 
     /* Helpers ---------------------------------------------------------- */

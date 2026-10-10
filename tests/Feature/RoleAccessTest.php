@@ -44,14 +44,17 @@ class RoleAccessTest extends TestCase
             'developer subjects'  => ['developer.subjects.index', 'developer'],
             'developer terms'     => ['developer.terms.index',    'developer'],
             'developer tracks'    => ['developer.tracks.index',   'developer'],
+            'developer enrollments' => ['developer.enrollments.index', 'developer'],
             'teacher dashboard'   => ['teacher.dashboard',        'teacher'],
             'teacher lessons'     => ['teacher.lessons.index',    'teacher'],
             'teacher quizzes'     => ['teacher.quizzes.index',    'teacher'],
             'teacher gradebook'   => ['teacher.gradebook',        'teacher'],
+            'teacher add students' => ['teacher.enrollments.index', 'teacher'],
             'student dashboard'   => ['student.dashboard',        'student'],
             'student subjects'    => ['student.subjects.index',   'student'],
             'student quizzes'     => ['student.quizzes.index',    'student'],
             'student grades'      => ['student.grades',           'student'],
+            'student apply'       => ['student.enrollments.index', 'student'],
         ];
     }
 

@@ -17,14 +17,12 @@ class DashboardController extends Controller
     {
         $student = $request->user()->load(['section.gradeLevel', 'section.trackStrand']);
 
-        // Subjects offered to the student's section, with the assigned teacher
-        $classes = $student->section_id
-            ? SubjectTeacher::with(['subject', 'teacher'])
-                ->where('section_id', $student->section_id)
-                ->get()
-                ->sortBy(fn (SubjectTeacher $offering) => $offering->subject->name)
-                ->values()
-            : collect();
+        // The student's classes (section + approved extra classes), with the assigned teacher
+        $classes = $student->studentClasses()
+            ->with(['subject', 'teacher'])
+            ->get()
+            ->sortBy(fn (SubjectTeacher $offering) => $offering->subject->name)
+            ->values();
 
         $subjectIds = $classes->pluck('subject_id');
 
@@ -33,9 +31,9 @@ class DashboardController extends Controller
             ->latest()
             ->get();
 
-        // Published quizzes for the student's section that they haven't taken yet
+        // Published quizzes for the student's classes that they haven't taken yet
         $pendingQuery = Quiz::published()
-            ->forSection($student->section_id)
+            ->visibleTo($student)
             ->whereNotIn('id', $submissions->pluck('quiz_id'));
 
         $percentages = $submissions->map(fn (QuizSubmission $s) => $s->percent());

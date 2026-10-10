@@ -33,10 +33,10 @@
 
     {{-- Stats --}}
     <div class="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <x-stat-card label="Students" :value="number_format($stats['students'])" icon="academic-cap" hint="Enrolled student accounts" />
-        <x-stat-card label="Teachers" :value="number_format($stats['teachers'])" icon="users" hint="Active faculty accounts" />
-        <x-stat-card label="Sections" :value="number_format($stats['sections'])" icon="building" hint="Across SHS and College" />
-        <x-stat-card label="Subjects" :value="number_format($stats['subjects'])" icon="stack" hint="Offered this academic year" />
+        <x-stat-card label="Students" :value="number_format($stats['students'])" icon="academic-cap" hint="Enrolled student accounts" :href="route('developer.users.index', ['role' => 'student'])" />
+        <x-stat-card label="Teachers" :value="number_format($stats['teachers'])" icon="users" hint="Active faculty accounts" :href="route('developer.users.index', ['role' => 'teacher'])" />
+        <x-stat-card label="Sections" :value="number_format($stats['sections'])" icon="building" hint="Across SHS and College" :href="route('developer.sections.index')" />
+        <x-stat-card label="Subjects" :value="number_format($stats['subjects'])" icon="stack" hint="Offered this academic year" :href="route('developer.subjects.index')" />
     </div>
 
     <div class="mt-8 grid gap-6 xl:grid-cols-3">

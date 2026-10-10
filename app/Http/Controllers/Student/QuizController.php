@@ -18,11 +18,9 @@ class QuizController extends Controller
     {
         $student = $request->user();
 
-        $quizzes = $student->section_id
-            ? Quiz::published()->forSection($student->section_id)
-                ->with('subject')->withCount('questions')
-                ->latest('published_at')->get()
-            : collect();
+        $quizzes = Quiz::published()->visibleTo($student)
+            ->with('subject')->withCount('questions')
+            ->latest('published_at')->get();
 
         $submissions = $student->quizSubmissions()->get()->keyBy('quiz_id');
 

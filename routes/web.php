@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Developer;
 use App\Http\Controllers\LessonAttachmentController;
 use App\Http\Controllers\LessonVideoController;
@@ -21,11 +22,20 @@ Route::get('/', fn () => auth()->check()
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+
+    // Forgot password (the email link points at password.reset)
+    Route::get('/forgot-password', [PasswordResetController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'store'])->middleware('throttle:5,1')->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:5,1')->name('password.update');
 });
 
 /* Signed-in users -------------------------------------------------------- */
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+
+    // Keeps the session alive while the user types or clicks on a page (see app.js, idle sign-out)
+    Route::get('/session/ping', fn () => response()->noContent())->name('session.ping');
 
     // Sends each user to their own role's dashboard
     Route::get('/dashboard', fn (Request $request) => redirect()->route(
@@ -70,6 +80,10 @@ Route::middleware('auth')->group(function () {
             Route::resource('sections', Developer\SectionController::class)->except('show');
             Route::resource('subjects', Developer\SubjectController::class)->except('show');
 
+            // Requests to join a class outside the student's section
+            Route::get('/enrollments', [Developer\EnrollmentController::class, 'index'])->name('enrollments.index');
+            Route::patch('/enrollments/{enrollment}', [Developer\EnrollmentController::class, 'update'])->name('enrollments.update');
+
             Route::get('/subjects/{subject}/teachers', [Developer\SubjectTeacherController::class, 'edit'])->name('subjects.teachers.edit');
             Route::put('/subjects/{subject}/teachers', [Developer\SubjectTeacherController::class, 'update'])->name('subjects.teachers.update');
 
@@ -100,6 +114,9 @@ Route::middleware('auth')->group(function () {
                 Route::delete('/quizzes/{quiz}/questions/{question}', [Teacher\QuizQuestionController::class, 'destroy'])->name('quizzes.questions.destroy');
             });
 
+            Route::get('/enrollments', [Teacher\EnrollmentController::class, 'index'])->name('enrollments.index');
+            Route::post('/enrollments', [Teacher\EnrollmentController::class, 'store'])->name('enrollments.store');
+
             Route::get('/gradebook', [Teacher\GradebookController::class, 'index'])->name('gradebook');
             Route::get('/gradebook/export', [Teacher\GradebookController::class, 'export'])->name('gradebook.export');
             Route::get('/gradebook/print', [Teacher\GradebookController::class, 'print'])->name('gradebook.print');
@@ -120,6 +137,9 @@ Route::middleware('auth')->group(function () {
             Route::post('/quizzes/{quiz}', [Student\QuizController::class, 'submit'])->name('quizzes.submit');
 
             Route::get('/grades', Student\GradeController::class)->name('grades');
+
+            Route::get('/enrollments', [Student\EnrollmentController::class, 'index'])->name('enrollments.index');
+            Route::post('/enrollments', [Student\EnrollmentController::class, 'store'])->name('enrollments.store');
 
             Route::get('/announcements/{announcement}', [Student\AnnouncementController::class, 'show'])->name('announcements.show');
         });

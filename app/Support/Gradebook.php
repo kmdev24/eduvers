@@ -34,7 +34,7 @@ class Gradebook
         $stats    = null;
 
         if ($selected) {
-            $students = User::students()->where('section_id', $selected->section_id)->orderBy('name')->get();
+            $students = $selected->students()->orderBy('name')->get();
 
             $quizzes = Quiz::where('teacher_id', $teacher->id)
                 ->where('subject_id', $selected->subject_id)

@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\AnnouncementAudience;
 use App\Models\Announcement;
+use App\Models\ClassEnrollment;
 use App\Models\Lesson;
 use App\Models\Quiz;
 use App\Models\SubjectTeacher;
@@ -23,6 +24,7 @@ use Throwable;
  *
  *  - Lesson:       students whose section takes the lesson's subject (same rule as LessonPolicy)
  *  - Quiz:         students in the sections the quiz is published to
+ *    (both also reach students a developer approved into one of those classes)
  *  - Announcement: students who can see it (all students, or one section)
  *
  * Every method returns how many students were notified. Failures are reported to the log
@@ -45,7 +47,7 @@ class StudentNotifier
             ->pluck('section_id')
             ->all();
 
-        return $this->notifySections(NewLessonNotification::for($lesson), $sectionIds);
+        return $this->notifySections(NewLessonNotification::for($lesson), $sectionIds, $this->joinedStudentIds($lesson->subject_id));
     }
 
     /**
@@ -60,7 +62,7 @@ class StudentNotifier
 
         $sectionIds ??= $quiz->sections()->pluck('sections.id')->all();
 
-        return $this->notifySections(NewQuizNotification::for($quiz), $sectionIds);
+        return $this->notifySections(NewQuizNotification::for($quiz), $sectionIds, $this->joinedStudentIds($quiz->subject_id, $sectionIds));
     }
 
     public function announcementPosted(Announcement $announcement): int
@@ -85,15 +87,26 @@ class StudentNotifier
             : ' No students were notified (no students match this audience).';
     }
 
+    /** Students approved into a class of this subject (optionally only these sections' classes). */
+    private function joinedStudentIds(int $subjectId, ?array $sectionIds = null): array
+    {
+        return ClassEnrollment::approved()
+            ->whereHas('offering', fn ($q) => $q->where('subject_id', $subjectId)
+                ->when($sectionIds !== null, fn ($q) => $q->whereIn('section_id', $sectionIds)))
+            ->pluck('student_id')
+            ->all();
+    }
+
     /**
-     * @param  array<int>|null  $sectionIds  null = every student in the school
+     * @param  array<int>|null  $sectionIds        null = every student in the school
+     * @param  array<int>       $extraStudentIds   also these students (joined a class outside their section)
      */
-    private function notifySections(StudentActivityNotification $notification, ?array $sectionIds): int
+    private function notifySections(StudentActivityNotification $notification, ?array $sectionIds, array $extraStudentIds = []): int
     {
         $this->lastError = null;
         $notified = 0;
 
-        if ($sectionIds !== null && $sectionIds === []) {
+        if ($sectionIds === [] && $extraStudentIds === []) {
             $this->remember($notification, $sectionIds, 0);
 
             return 0;
@@ -102,7 +115,7 @@ class StudentNotifier
         try {
             User::query()
                 ->students()
-                ->when($sectionIds !== null, fn ($q) => $q->whereIn('section_id', $sectionIds))
+                ->when($sectionIds !== null, fn ($q) => $q->where(fn ($q) => $q->whereIn('section_id', $sectionIds)->orWhereIn('id', $extraStudentIds)))
                 ->chunkById((int) config('eduvers.notifications.chunk', 200), function ($students) use ($notification, &$notified) {
                     Notification::send($students, $notification);
                     $notified += $students->count();

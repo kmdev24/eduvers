@@ -28,8 +28,8 @@ EduVers is the web-based Learning Management System (LMS) of Movers Institute of
 | Role | Who | What they do |
 |---|---|---|
 | **Developer** (Admin) | IT / Registrar staff | Manage users, sections, subjects, teacher assignments, academic terms, tracks & strands, and school-wide announcements |
-| **Teacher** | Full-time, Part-time or Movers faculty | Post lessons with attachments, build and publish quizzes, view the gradebook, export grades, post section announcements |
-| **Student** | SHS and College learners | Read lessons, download materials, take quizzes (scored instantly), view grades and announcements |
+| **Teacher** | Full-time, Part-time or Movers faculty | Post lessons (files and videos), build and publish quizzes, view the gradebook, export grades, post section announcements. Students are notified automatically |
+| **Student** | SHS and College learners | Read lessons, watch videos, download materials, take quizzes (scored instantly), view grades and announcements, get in-app and email notifications |
 
 **Academic structure**
 
@@ -43,11 +43,15 @@ EduVers is the web-based Learning Management System (LMS) of Movers Institute of
 
 | Layer | Technology |
 |---|---|
-| Framework | Laravel 13 (PHP 8.3+) |
-| Database | MySQL 8 (Laragon default) |
+| Framework | Laravel 13 (PHP 8.3+; the Docker image runs PHP 8.3) |
+| Database | MySQL 8 locally (Laragon); TiDB Cloud (MySQL-compatible) in production. PostgreSQL also supported |
 | Front end | Blade templates, Tailwind CSS v4 (via Vite), a little vanilla JavaScript |
 | File storage | Laravel Storage, **private** `local` disk (`storage/app/private`) |
-| Tests | PHPUnit 12 (feature tests on an in-memory SQLite database) |
+| Notifications | Laravel Notifications: `database` channel (in-app bell) + `mail` channel (queued emails) |
+| Queue | `database` queue driver; a worker runs inside the Docker container |
+| Email | SMTP locally (Mailtrap / Gmail); **Brevo HTTPS API** on Railway (built-in `brevo` mailer) |
+| Hosting | Docker (PHP 8.3 + Apache) on Railway, database on TiDB Cloud (Render blueprint also included) |
+| Tests | PHPUnit 12 (feature tests on an in-memory SQLite database; also pass on PostgreSQL) |
 
 Design theme: warm white and slate-dark surfaces with gold accents (`gold-500 #D4AF37`, `gold-600 #AA7C11`, champagne `#C5A059`). The palette lives in `tailwind.config.js`; shared component styles are in `resources/css/app.css`.
 
@@ -144,8 +148,8 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 | File | What it checks |
 |---|---|
 | `tests/Feature/RoleAccessTest.php` | Every Developer, Teacher and Student page. Guests are sent to login, the owning role gets **200**, the other roles get **403 Forbidden**. Also: `/dashboard` redirects to the right portal; announcements are closed to students; teachers can't edit another teacher's lesson or quiz; students can only take published quizzes for their own section; a quiz is scored immediately and only once; master lists and gradebook exports are restricted. |
-| `tests/Feature/AuthenticationTest.php` | Login, wrong password, lockout after 5 failed attempts, logout, signed-in users kept off the login page, password change with the current password. |
-| `tests/Feature/NotificationTest.php` | Who is notified for lessons, quizzes and announcements (and who isn't); no repeat alerts on edit/re-publish; bell entry is instant while emails wait for the queue worker, then send; nothing is sent when the transaction rolls back; email content, theme and link-injection safety; the Brevo mailer; the bell, Notifications page, mark as read, and that users can't touch each other's notifications. |
+| `tests/Feature/AuthenticationTest.php` | Login, wrong password, lockout after 5 failed attempts, logout, signed-in users kept off the login page, password change with the current password. After login, users return to the page they wanted only if their role may open it (a leftover developer link never sends a teacher to a 403). |
+| `tests/Feature/NotificationTest.php` | Who is notified for lessons, quizzes and announcements (and who isn't); no repeat alerts on edit/re-publish; bell entry is instant while emails wait for the queue worker, then send; nothing is sent when the transaction rolls back; email content, theme and link-injection safety; the Brevo mailer; the bell, live polling endpoint and dropdown refresh, Notifications page, mark as read, and that users can't touch each other's notifications; the System check page and its test sender; and that queued notifications survive serialization on PHP 8.3 (no `readonly` properties). |
 | `tests/Feature/ExampleTest.php` | The home page redirects guests to the login page. |
 
 > If tests fail with a *Vite manifest not found* or font-manifest error, run `npm run build` once (or keep `npm run dev` running) and try again.
@@ -157,9 +161,12 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 ### Authentication and security
 - [x] Gold-themed login page with school logo and motto
 - [x] Sign-in lockout after 5 failed attempts (per email + IP)
+- [x] Automatic sign-out after 30 minutes without activity (`IDLE_TIMEOUT_MINUTES`; typing on a page counts as activity, the bell's background check does not)
+- [x] **Forgot password** on the login page: emails a one-time reset link (valid 60 minutes); the same message is shown whether or not the email has an account, and a reset signs the account out everywhere else
 - [x] Role-based redirect to each portal; role guard middleware (`role:developer`, `role:teacher`, `role:student`)
+- [x] After login, users return to the page they were trying to open only if their role is allowed there; otherwise to their own dashboard
 - [x] Ownership policies: teachers edit only their own lessons, quizzes and announcements
-- [x] Students only see content for their own section
+- [x] Students only see content for their own section, plus classes a developer approved them into
 - [x] Lesson files on private storage, downloadable only by authorized users
 - [x] Themed 403 "Access denied" page
 - [x] Profile page for all users: change name; change password (requires current password; min. 8 characters with letters and numbers)
@@ -174,6 +181,8 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 - [x] **Tracks & Strands:** Academic, TechPro, TVL and College categories; add, edit and delete strands
 - [x] **Announcements:** school-wide, all teachers, all students or one section; pin; expiry date
 - [x] **Master list:** printable view and CSV for any section
+- [x] **Enrollment requests:** approve or reject requests to add a student to a class outside their section (from teachers or students), and remove approved ones
+- [x] **System check:** mail and queue settings in use, recent notifications, emails waiting or failed, the last notify run and its error, and a **Send test notification** button (in-app, or in-app + email) that shows any error on screen
 
 ### Teacher
 - [x] Dashboard: stats, class cards with Grades and Master list shortcuts, latest submissions, announcements
@@ -182,7 +191,9 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 - [x] **Quizzes:** multiple choice (A–D), pass mark, choose target sections, publish or unpublish, optional answer reveal, questions lock after the first submission
 - [x] **Gradebook:** per term and class: student × quiz grid, averages, pass rate, completion
 - [x] **Exports:** Grades CSV, Submissions CSV, printable class record (browser *Save as PDF*)
+- [x] **Add students:** request to add a student from another section to one of their classes (a developer approves); approved students appear in the gradebook, the dashboard student counts and the section master list (as "Joined from other sections"), and get the class's notifications
 - [x] **Announcements** to the sections they teach
+- [x] **Automatic student notifications** when posting a lesson, publishing a quiz or posting an announcement; the confirmation says how many students were notified (or why not)
 - [x] **Master list** for their own sections
 
 ### Student
@@ -191,13 +202,18 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 - [x] **Lesson reader:** video player at the top (HTML5 or embedded), then content; open PDFs in the browser, download attachments, previous/next navigation
 - [x] **Quizzes:** one attempt, instant automated scoring, score ring, answer review (if the teacher allows)
 - [x] **My Grades:** results by term and subject with averages
+- [x] **Apply for a subject:** apply to join a class of their course (strand) or a core subject taught in another section; it opens once a developer approves, and the student gets a bell notification and email with the decision
 - [x] **Notifications:** header bell with unread badge and dropdown, full Notifications page (All / Unread, mark one or all as read); clicking a notification opens the lesson, quiz or announcement
-- [x] **Email alerts** for new lessons, published quizzes and announcements (queued, EduVers-branded)
+- [x] **Live updates:** the bell checks for new notifications every 15 seconds (and as soon as the student returns to the tab or app), updates the badge and dropdown, and shows a gold pop-up, with no page reload
+- [x] **Announcement page:** each announcement has its own page (the target of announcement notifications)
+- [x] **Email alerts** for new lessons, published quizzes and announcements (queued, EduVers-branded, phone-friendly)
 
 ### Branding and reports
 - [x] Movers Institute logo on the login page, sidebar, phone-size top bar and printed report letterheads
 - [x] Motto "Transform, Learn, Lead" on the login page, Developer portal and report letterheads
 - [x] A4 printable reports with letterhead and signature line
+- [x] Live Philippine-time clock (Asia/Manila, 12-hour with AM/PM) in the header for every role; on phones the date and time take turns every 5 seconds so both stay readable
+- [x] Emails use the same gold theme, logo and motto
 
 ---
 
@@ -210,8 +226,8 @@ These are deliberate limits of the current phase. Anything below that the school
 | Exports | **CSV** files (UTF-8, open directly in Excel) | Native `.xlsx` workbooks |
 | PDF | **Browser-native** printable pages. Use *Print → Save as PDF* | Server-generated PDF files |
 | Quizzes | **Multiple choice** (2–4 options), one attempt per student, no time limit | Essay, identification, true/false types (true/false can be written as A/B), timers, retakes, question banks |
-| Passwords | Users change their own password on the Profile page; the admin resets forgotten passwords from **Users** | "Forgot password" email links |
-| Notifications | Announcements on dashboards | Email or SMS notifications |
+| Passwords | Profile page, **Forgot password** email link, or the admin resets it from **Users** | Two-factor sign-in |
+| Notifications | In-app bell (checks every 15 seconds) and email for new lessons, quizzes and announcements | Instant websocket push, phone push notifications, SMS; per-student email opt-out; notifications for teachers |
 | Coursework | Lessons and quizzes | Assignment/homework uploads by students, attendance |
 | Accounts | Created one by one by the admin | Bulk CSV import |
 | Appearance | Light theme | Dark-mode toggle |
@@ -306,6 +322,8 @@ Sign in, change the password on **My Profile**, then create terms, strands, sect
 - [ ] Document root is `public/`
 - [ ] Nightly database and `storage/app/private` backups scheduled and a restore tested
 - [ ] `php artisan test` passes on the release build
+- [ ] `QUEUE_CONNECTION=database`, a mailer configured (`MAIL_MAILER=brevo` on Railway) and a verified `MAIL_FROM_ADDRESS`
+- [ ] **Developer → System check → Send test notification** (in-app + email) succeeds
 
 ---
 
@@ -391,9 +409,12 @@ Railway runs the same `Dockerfile`; TiDB Cloud provides a MySQL-compatible datab
 4. Service → **Variables → Raw Editor**: paste `deploy/railway.env.example`, then replace the `<…>` placeholders:
    - `APP_KEY`: run `php artisan key:generate --show` locally and paste the result
    - `DB_HOST`, `DB_USERNAME`, `DB_PASSWORD`: from TiDB's **Connect** dialog
+   - `BREVO_API_KEY`, `MAIL_FROM_ADDRESS`: for email alerts (see [8.10](#810-notifications-and-email-alerts))
 5. Service → **Settings → Networking → Generate Domain** (target port **8080**). `APP_URL` picks it up through `${{RAILWAY_PUBLIC_DOMAIN}}`.
 6. **Uploads:** right-click the service → **Attach Volume**, mount path **`/var/www/html/storage/app`**. Without a volume, lesson attachments and uploaded videos are deleted on every redeploy.
-7. Deploy. On start, the container caches config, runs `migrate --force` against TiDB, then starts Apache. Watch **Deployments → Logs** for `▶ EduVers: starting web server`.
+7. Deploy. On start, the container caches config, runs `migrate --force` against TiDB, starts the queue worker, then starts Apache. Watch **Deployments → Logs** for `▶ EduVers: starting queue worker` and `▶ EduVers: starting web server`.
+
+   Every `git push` to `main` redeploys automatically.
 8. Create the first administrator: service → **⋯ → Shell** (or `railway ssh`), then:
    ```bash
    php artisan tinker
@@ -423,6 +444,8 @@ Then deploy on Railway. Migrations already applied are skipped. Uploaded files i
 | `APP_KEY is not set` | Add `APP_KEY` (from `php artisan key:generate --show`) to Railway variables |
 | Health check fails / "Application failed to respond" | Make sure `PORT=8080` and the domain's target port is `8080` |
 | Uploaded files disappear after deploy | Attach a Railway volume at `/var/www/html/storage/app` |
+| `AH00534: apache2: Configuration error: More than one MPM loaded` | Fixed in the `Dockerfile` and `docker/entrypoint.sh` (only `mpm_prefork` is enabled). If it returns, check that both files are committed |
+| You pushed but no new deployment appears | The push didn't reach GitHub: run `git push origin main` and look for `main -> main`. Otherwise Railway → **Deployments → ⋮ → Redeploy**, and check **Settings → Source** (repo `kmdev24/eduvers`, branch `main`) |
 
 ### 8.10 Notifications and email alerts
 
@@ -439,9 +462,11 @@ Each student gets an **in-app notification** (the bell) and an **email**. Editin
 **How it works**
 
 - `App\Support\StudentNotifier` finds the recipients; `App\Notifications\NewLessonNotification`, `NewQuizNotification` and `CourseAnnouncementNotification` use Laravel's `database` and `mail` channels.
-- The **bell** entry is written during the request (instant, no worker needed). The **email** is a queued job (`ShouldQueue`), so posting to a large class stays fast.
+- The **bell** entry is written during the request (no worker needed). The **email** is a queued job (`ShouldQueue`), so posting to a large class stays fast.
+- Open pages pick it up within **15 seconds**: `resources/js/app.js` polls `GET /notifications/count`, updates the badge, reloads the dropdown from `GET /notifications/dropdown` and shows a pop-up. Polling pauses while the tab is hidden and runs again when the student comes back.
 - Both wait until the database transaction commits (`ShouldQueueAfterCommit`): a failed save never sends an alert.
-- If mail or the queue is broken, the lesson/quiz/announcement is still saved; the error goes to the log.
+- If mail or the queue is broken, the lesson/quiz/announcement is still saved. The teacher sees *"…But students could not be notified"*, and the error is logged and shown on **System check**.
+- Notification classes keep their details in a plain `public array $data` property. Don't make it `readonly`: PHP 8.3 can't restore readonly parent properties when a queued job is unserialized (a test guards this).
 - Emails use the EduVers theme (`resources/views/vendor/mail/html/themes/eduvers.css`, template `resources/views/mail/student-activity.blade.php`).
 
 **Local development (Laragon)**
@@ -472,6 +497,17 @@ Railway's Free, Trial and Hobby plans **block SMTP**, so Gmail/Mailtrap SMTP won
 
 Settings: `NOTIFICATIONS_MAIL=false` keeps the bell but turns emails off. `RUN_QUEUE_WORKER=false` if you run a separate worker service.
 
+**System check (Developer)**
+
+Developer sidebar → **System check** shows:
+
+- the queue connection, mailer, sender address and whether the Brevo key is set;
+- the last 10 notifications created;
+- emails waiting in the queue (with a warning if the worker seems stopped) and failed emails;
+- the **last notify run**: which item, which sections, how many students, and the error if it failed.
+
+**Send test notification** sends to any student immediately (no queue), in-app only or in-app + email, and shows the result or the exact error. If the test works but real posts don't, the problem is in the posting flow or the recipients, not the mail setup.
+
 **Troubleshooting**
 
 | Symptom | Fix |
@@ -482,6 +518,49 @@ Settings: `NOTIFICATIONS_MAIL=false` keeps the bell but turns emails off. `RUN_Q
 | `Brevo API rejected the email (HTTP 400)` mentioning the sender | `MAIL_FROM_ADDRESS` isn't a verified Brevo sender |
 | `Connection could not be established` / timeout on Railway | SMTP is blocked on your plan: use `MAIL_MAILER=brevo` |
 | Emails land in spam | Normal for a free Gmail sender; ask students to mark EduVers as "Not spam", or verify a school domain in Brevo |
+| Teacher sees *"Announcement posted. But students could not be notified"* | Open **System check** → **Last notify run** for the exact error |
+| *"No students were notified (no students match this audience)"* | No students are enrolled in the chosen section, or an *All teachers* announcement. Check the students' section under **Users** |
+| `Cannot initialize readonly property …StudentActivityNotification::$data` | Old code: the payload property must not be `readonly` on PHP 8.3. Pull the latest code and redeploy |
+| Bell only updates after a reload | Run `npm run build` (or redeploy) so the latest `app.js` is served, then hard-refresh the page |
+
+### 8.11 Handing over a local copy (one-click scripts)
+
+The `handover` folder has Windows scripts and a settings form. They need no typing in a terminal: double-click and follow the messages.
+
+| File | Who runs it | What it does |
+|---|---|---|
+| `handover\Make-Handover-Package.bat` | Developer, on the PC that has the project | Rebuilds the styles (`npm run build`), copies the project **without** `.env`, `.git`, `node_modules`, logs and caches, adds the PHP 8.3 folder from Laragon, exports the local MySQL database, adds the installer, `MANUAL-INSTALL.txt` (the same steps by hand) and a `READ-ME-FIRST.txt`, and zips everything into `C:\EduVers-Handover\EduVers-<date-time>.zip` |
+| `Install-EduVers.bat` (at the top of the zip) | Client, after extracting the zip | Copies EduVers to `C:\laragon\www\eduvers`, adds PHP 8.3 to Laragon if needed, creates `.env` with a new `APP_KEY`, opens the **settings form**, then creates the database, loads the data, runs migrations, runs `npm install` when Node.js 20.19+ is present (optional), and puts three shortcuts on the Desktop |
+| `handover\Setup-EduVers.bat` (Desktop: **EduVers Settings**) | Client, whenever settings change | Opens the settings form in the browser and waits until it is saved |
+| `handover\Start-EduVers.bat` (Desktop: **Start EduVers**) | Client, every time (presentation mode) | Stops any left-over edit session and removes a stale `public\hot`, checks that MySQL is running, starts EduVers at `http://127.0.0.1:8000` with the saved styles in `public/build` (plus a small "email sender" window when emails are on) and opens the browser. Closing its window stops EduVers |
+| `handover\Edit-EduVers.bat` (Desktop: **Edit EduVers**) | Client, when changing the code (coding mode) | Opens the project in VS Code, runs `npm install` if needed, starts `npm run dev` (live reload) and `artisan serve` in minimized windows, opens the browser. Pressing a key in its window stops everything, deletes `public\hot` and runs `npm run build` so presentation mode shows the changes |
+| `handover\MANUAL-INSTALL.txt` | Anyone, if the installer fails | Step-by-step manual install in Laragon's Terminal, plus fixes for common errors |
+
+**The settings form** (`handover/setup/index.php`)
+
+A page in the client's browser, so nobody has to edit `.env` by hand:
+
+1. **Database:** server address, port, database name, username, password, and a tick box for cloud databases that need SSL. **Test connection** checks the values before saving and explains failures in plain words (MySQL not started, wrong password, database will be created).
+2. **Email alerts:** *No emails*, *Gmail* (address + App Password), *Brevo* (API key + verified sender) or *Another mail server* (SMTP), plus the sender name.
+3. **Address of EduVers:** the address used in email links.
+
+How it is protected:
+
+- It runs on a small web server that only listens on this computer (`127.0.0.1:8765`) and only while the settings window is open; it stops itself after saving.
+- Every request needs a random code created for that one session, so other programs or websites cannot use the form.
+- Saved passwords and keys are never shown again (leave a field empty to keep the saved value).
+- The previous settings are kept once in `.env.backup`.
+- When emails are switched on it sets `QUEUE_CONNECTION=database`, and **Start EduVers** then runs the queue worker so posting to a whole class stays fast.
+
+**Client requirements:** Windows 10 or 11 and [Laragon](https://laragon.org/download/) installed in `C:\laragon`, with **Start All** clicked. PHP and the Composer packages travel inside the zip. For **coding mode** also install [Node.js LTS](https://nodejs.org/) (20.19+ or 22.12+; Vite needs it) and [VS Code](https://code.visualstudio.com/); `node_modules` is not in the zip, so the first `npm install` needs internet.
+
+**Good to know**
+
+- The package holds the **local** database from the developer's PC, not the live website's data. Remove or change the demo accounts (password `password`) before making the package.
+- `.env` and `.env.backup` are never copied. The packaging script stops with an error if a `.env` ever ends up in the package.
+- The installer can be run again to update the program files; existing settings, uploads and database are kept. If the settings form was never completed, it opens again.
+- If Windows shows a security warning for the `.bat` file (it came from a downloaded zip), choose **More info → Run anyway** or **Run**.
+- `.bat` files must keep Windows (CRLF) line endings; `.gitattributes` enforces this.
 
 ## 9. Backups and restore
 
@@ -531,8 +610,9 @@ On Windows servers, use **Task Scheduler** with the same commands in a `.bat` fi
 | Uploaded video won't play | Use MP4 (H.264). MOV and some WebM files only play in certain browsers |
 | Google Drive video shows "access denied" | In Drive, set sharing to **Anyone with the link** |
 | Changes to `.env` not taking effect | `php artisan config:clear` (or `config:cache` in production) |
-| 403 page when opening a link | The signed-in role isn't allowed there. This is the role guard working as intended |
+| 403 page when opening a link | The signed-in role isn't allowed there (the role guard working as intended). All tabs in one browser share one login: test different roles in separate windows (e.g. one normal, one Incognito) |
 | Students see the bell notification but get no email | Start `php artisan queue:work` (see [8.10](#810-notifications-and-email-alerts)) |
+| `git commit` says *nothing to commit* right after files were changed | An editor with the file open may have saved the old version back. Close those tabs without saving, check with `git status`, then commit |
 
 ---
 
@@ -543,7 +623,8 @@ app/
   Enums/                 UserRole, TeacherType, TrackCategory, LevelType, AnnouncementAudience
   Http/Controllers/
     Auth/                LoginController
-    Developer/           Dashboard, Users, Sections, Subjects, SubjectTeacher, AcademicTerms, TrackStrands
+    Developer/           Dashboard, Users, Sections, Subjects, SubjectTeacher, AcademicTerms, TrackStrands,
+                         SystemCheck (notification & email health, test sender)
     Teacher/             Dashboard, Lessons, Quizzes, QuizQuestions, Gradebook (+ export/print)
     Student/             Dashboard, Subjects, Lessons, Quizzes, Grades, Announcements
     AnnouncementController, MasterListController, ProfileController, LessonAttachmentController,
@@ -562,9 +643,13 @@ database/
   seeders/               EduVersSeeder (demo data)
 resources/
   css/app.css            Tailwind + EduVers component classes
-  js/app.js              Sidebar, confirmations, form helpers
+  js/app.js              Sidebar, confirmations, form helpers, live clock, notification bell (polling + pop-ups)
   views/                 Blade views per role, components/, reports/ (printables),
                          mail/ + vendor/mail/ (EduVers email template and theme)
+config/eduvers.php       EduVers settings (email alerts on/off, queue worker)
+docker/                  Apache, PHP and entrypoint (migrations, queue worker) for the container
+handover/                One-click Windows scripts (make the client package, install, start, edit) and the
+                         browser settings form for database and email (handover/setup)
 routes/web.php           All routes, grouped by role
 tests/Feature/           Role guard, authentication and notification tests
 public/images/logo.jpg   Movers Institute logo

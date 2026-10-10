@@ -316,3 +316,28 @@ document.querySelectorAll('[data-notification-bell]').forEach((bell) => {
     window.addEventListener('focus', refresh);
     window.addEventListener('pageshow', (e) => e.persisted && refresh());
 });
+
+// Idle sign-out (the server ends the session after data-idle-minutes without requests).
+// Typing or clicking pings the server at most once a minute, so filling in a long quiz
+// does not count as idle. Once the time is up the page reloads, which shows the login page
+// and clears the screen of an unattended computer.
+(() => {
+    const minutes = Number(document.body.dataset.idleMinutes);
+    const pingUrl = document.body.dataset.pingUrl;
+    if (!(minutes > 0) || !pingUrl) return;
+
+    let lastActive = Date.now();
+    let lastPing = Date.now();
+    const onActivity = () => {
+        lastActive = Date.now();
+        if (lastActive - lastPing > 60 * 1000) {
+            lastPing = lastActive;
+            fetch(pingUrl, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin', cache: 'no-store' }).catch(() => {});
+        }
+    };
+    ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach((type) => window.addEventListener(type, onActivity, { passive: true }));
+
+    setInterval(() => {
+        if (Date.now() - lastActive > minutes * 60 * 1000 + 5000) window.location.reload();
+    }, 30 * 1000);
+})();

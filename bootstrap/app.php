@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\LogoutIdleUsers;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
         ]);
+
+        // Sign out after a period of inactivity (config/eduvers.php: idle_minutes)
+        $middleware->appendToGroup('web', LogoutIdleUsers::class);
 
         // Signed-out users go to the login page; signed-in users hitting
         // guest-only pages go to their dashboard.

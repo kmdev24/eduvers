@@ -16,6 +16,9 @@
                     <p class="text-xs font-semibold uppercase tracking-luxe text-champagne-dark">{{ $offering->subject->code }}</p>
                     <h2 class="mt-2 font-serif text-xl font-semibold leading-snug text-ink-900 group-hover:text-gold-800">{{ $offering->subject->name }}</h2>
                     <p class="mt-1 text-sm text-slate-500">{{ $offering->teacher->name }}</p>
+                    @if ((int) $offering->section_id !== (int) $student->section_id)
+                        <p class="mt-2"><span class="badge-gold">Joined class · {{ $offering->section->name }}</span></p>
+                    @endif
                     <div class="gold-divider my-5"></div>
                     <div class="mt-auto flex items-center gap-5 text-sm text-slate-600">
                         <span class="inline-flex items-center gap-1.5"><x-icon name="book-open" class="size-4 text-gold-600" /> {{ (int) ($lessonCounts[$offering->subject_id] ?? 0) }} lessons</span>

@@ -1,0 +1,98 @@
+EduVers - MANUAL installation (without Install-EduVers.bat)
+============================================================
+
+Use this only if the one-click installer does not work on this computer.
+It does the same thing by hand. Type each command, then press Enter.
+
+WHAT YOU NEED
+  - Windows 10 or 11
+  - Laragon (Full)        https://laragon.org/download/   keep the folder C:\laragon
+  - Node.js (LTS)         https://nodejs.org/             only needed to change styles
+  - Visual Studio Code    https://code.visualstudio.com/  only needed to edit the code
+  - This package, extracted (right-click the zip - Extract All)
+
+STEP 1 - Start Laragon
+  Open Laragon and click "Start All". Wait until MySQL shows as started.
+
+STEP 2 - Add PHP 8.3 to Laragon
+  a. Copy the folder inside this package's "php" folder
+     (for example php-8.3.33-Win32-vs16-x64)
+     into C:\laragon\bin\php\
+  b. In Laragon: click "Menu" - PHP - Version - choose the php-8.3 one.
+  c. Click "Stop", then "Start All" again.
+
+STEP 3 - Copy the application
+  Copy this package's "eduvers" folder to C:\laragon\www\
+  You should now have C:\laragon\www\eduvers\artisan
+
+  Also copy database\eduvers.sql (from this package) into
+  C:\laragon\www\eduvers\
+
+STEP 4 - Open Laragon's Terminal  (IMPORTANT: not PowerShell, not a normal cmd)
+  In Laragon click "Terminal". Then type:
+
+      cd C:\laragon\www\eduvers
+      php -v
+
+  The first line must say PHP 8.3 (or newer). If not, repeat Step 2b.
+
+STEP 5 - Create the settings file
+      copy .env.example .env
+      php artisan key:generate
+
+  The database values in .env already match Laragon
+  (DB_HOST=127.0.0.1, DB_DATABASE=eduvers, DB_USERNAME=root, empty password).
+  Optional: open .env in Notepad and set
+      QUEUE_CONNECTION=sync
+      MAIL_MAILER=log
+  (or use "EduVers Settings" later to switch emails on).
+
+STEP 6 - Create the database and load the data
+      mysql -u root -e "CREATE DATABASE IF NOT EXISTS eduvers CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+      mysql -u root eduvers -e "source eduvers.sql"
+      php artisan migrate --force
+
+  No eduvers.sql in the package? Then run this instead of the "source" line,
+  to get an empty system with demo accounts (password: password):
+      php artisan migrate --seed --force
+
+  When it works, delete C:\laragon\www\eduvers\eduvers.sql
+  (it contains everyone's data).
+
+STEP 7 - Styles and scripts (needs Node.js and internet, once)
+      npm install
+      npm run build
+
+STEP 8 - Start EduVers
+      php artisan serve
+
+  Open http://127.0.0.1:8000 in the browser.
+  Keep the Terminal open while using EduVers. Press Ctrl+C to stop it.
+
+OPTIONAL - the Desktop shortcuts
+  Right-click each file below - Send to - Desktop (create shortcut):
+      C:\laragon\www\eduvers\handover\Start-EduVers.bat    presentation mode
+      C:\laragon\www\eduvers\handover\Edit-EduVers.bat     coding mode
+      C:\laragon\www\eduvers\handover\Setup-EduVers.bat    database / email settings
+
+EDITING THE CODE BY HAND (what "Edit EduVers" does)
+  Laragon Terminal 1:   cd C:\laragon\www\eduvers   then   npm run dev
+  Laragon Terminal 2:   cd C:\laragon\www\eduvers   then   php artisan serve
+  Edit in VS Code and save. When finished: press Ctrl+C in both terminals, then
+      npm run build
+  so the styles are saved for presentation mode.
+
+COMMON PROBLEMS
+  Page has no colors / no design
+      A file named public\hot was left behind. Delete it, then run
+      npm run build   (Laragon Terminal).
+  "could not find driver"
+      The command ran in the wrong window. Close it and use Laragon's Terminal.
+  "mysql is not recognized"
+      Same fix: use Laragon's Terminal.
+  "SQLSTATE ... Connection refused"
+      MySQL is not running: Laragon - "Start All".
+  "No application encryption key"
+      php artisan key:generate
+  Port 8000 is busy
+      Close the other EduVers window, or run:  php artisan serve --port=8001
