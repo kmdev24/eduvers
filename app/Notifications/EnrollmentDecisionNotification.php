@@ -5,7 +5,7 @@ namespace App\Notifications;
 use App\Enums\EnrollmentStatus;
 use App\Models\ClassEnrollment;
 
-/** Tells a student that a developer approved or rejected their request to join a class. */
+/** Tells a student that an admin approved or rejected their request to join a class. */
 class EnrollmentDecisionNotification extends StudentActivityNotification
 {
     public static function for(ClassEnrollment $enrollment): self
@@ -43,7 +43,7 @@ class EnrollmentDecisionNotification extends StudentActivityNotification
     protected function mailIntro(): string
     {
         return self::md($this->data['route'] === 'student.subjects.show'
-            ? 'A developer approved your enrollment in '.$this->data['context'].'.'
-            : 'A developer did not approve your enrollment in '.$this->data['context'].'.');
+            ? 'An admin approved your enrollment in '.$this->data['context'].'.'
+            : 'An admin did not approve your enrollment in '.$this->data['context'].'.');
     }
 }

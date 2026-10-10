@@ -11,7 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** A teacher asks to add a student from another section to one of their classes (a developer approves). */
+/** A teacher asks to add a student from another section to one of their classes (an admin approves). */
 class EnrollmentController extends Controller
 {
     public function index(Request $request): View
@@ -69,7 +69,7 @@ class EnrollmentController extends Controller
         }
 
         return ClassEnrollment::request($student, $class, $request->user())
-            ? back()->with('status', "Request sent to add {$student->name} to {$class->subject->code}. A developer must approve it.")
+            ? back()->with('status', "Request sent to add {$student->name} to {$class->subject->code}. An admin must approve it.")
             : back()->with('error', "{$student->name} already has a request for this class, or is already in it.");
     }
 }

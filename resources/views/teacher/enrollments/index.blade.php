@@ -1,10 +1,10 @@
 <x-layouts.app title="Add students">
     <x-page-header eyebrow="Teaching" title="Add students to a class"
-                   description="Add a student from another section to one of your classes. The student can open the class once a developer approves the request." />
+                   description="Add a student from another section to one of your classes. The student can open the class once an admin approves the request." />
 
     @if ($classes->isEmpty())
         <div class="card mt-8">
-            <x-empty-state icon="building" title="No classes yet" message="You can add students once a developer assigns you a class." />
+            <x-empty-state icon="building" title="No classes yet" message="You can add students once an admin assigns you a class." />
         </div>
     @else
         <div class="card mt-8">

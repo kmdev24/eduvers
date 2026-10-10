@@ -341,3 +341,19 @@ document.querySelectorAll('[data-notification-bell]').forEach((bell) => {
         if (Date.now() - lastActive > minutes * 60 * 1000 + 5000) window.location.reload();
     }, 30 * 1000);
 })();
+
+// Show / hide a typed password (the eye in the password field)
+document.querySelectorAll('[data-password-toggle]').forEach((button) => {
+    const input = document.getElementById(button.dataset.passwordToggle);
+    if (!input) return;
+
+    button.addEventListener('click', () => {
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        button.setAttribute('aria-pressed', String(show));
+        button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        button.querySelector('[data-password-show]')?.classList.toggle('hidden', show);
+        button.querySelector('[data-password-hide]')?.classList.toggle('hidden', !show);
+        input.focus();
+    });
+});

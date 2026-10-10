@@ -10,7 +10,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 
 /**
  * A student joining one class (subject × section) outside their own section.
- * Requested by a teacher or the student; only counts once a developer approves it.
+ * Requested by a teacher or the student; only counts once an admin approves it.
  */
 class ClassEnrollment extends Model
 {

@@ -91,7 +91,13 @@
                         <x-icon name="lock" class="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-slate-400" />
                         <input id="password" name="password" type="password" required autocomplete="current-password"
                                placeholder="••••••••"
-                               class="input py-3 pl-12">
+                               class="input py-3 pr-12 pl-12">
+                        <button type="button" data-password-toggle="password"
+                                aria-label="Show password" aria-pressed="false"
+                                class="absolute top-1/2 right-2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:text-ink-800 focus:ring-2 focus:ring-gold-500/20 focus:outline-none">
+                            <x-icon name="eye" class="size-5" data-password-show />
+                            <x-icon name="eye-slash" class="size-5 hidden" data-password-hide />
+                        </button>
                     </div>
                     @error('password')
                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>

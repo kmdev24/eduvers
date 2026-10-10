@@ -11,7 +11,7 @@ class LessonPolicy
     public function view(User $user, Lesson $lesson): bool
     {
         return match (true) {
-            $user->isDeveloper() => true,
+            $user->isAdmin() => true,
             $user->isTeacher()   => (int) $lesson->teacher_id === (int) $user->id || $user->teachesSubject($lesson->subject_id),
             $user->isStudent()   => $user->takesSubject($lesson->subject_id),
             default              => false,

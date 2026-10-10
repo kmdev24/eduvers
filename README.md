@@ -27,7 +27,7 @@ EduVers is the web-based Learning Management System (LMS) of Movers Institute of
 
 | Role | Who | What they do |
 |---|---|---|
-| **Developer** (Admin) | IT / Registrar staff | Manage users, sections, subjects, teacher assignments, academic terms, tracks & strands, and school-wide announcements |
+| **Admin** | IT / Registrar staff | Manage users, sections, subjects, teacher assignments, academic terms, tracks & strands, and school-wide announcements |
 | **Teacher** | Full-time, Part-time or Movers faculty | Post lessons (files and videos), build and publish quizzes, view the gradebook, export grades, post section announcements. Students are notified automatically |
 | **Student** | SHS and College learners | Read lessons, watch videos, download materials, take quizzes (scored instantly), view grades and announcements, get in-app and email notifications |
 
@@ -120,7 +120,7 @@ Created by `php artisan db:seed` (or `migrate --seed`). **All demo passwords are
 
 | Role | Email | Notes |
 |---|---|---|
-| Developer (Admin) | `developer@eduvers.test` | Full access |
+| Admin | `admin@eduvers.test` | Full access |
 | Teacher | `teacher@eduvers.test` | Full-time; teaches ICT 11-A (Computer Programming 1) and HRS 1-A (Food and Beverage Services) |
 | Student | `student@eduvers.test` | Enrolled in ICT 11-A |
 
@@ -147,8 +147,8 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 
 | File | What it checks |
 |---|---|
-| `tests/Feature/RoleAccessTest.php` | Every Developer, Teacher and Student page. Guests are sent to login, the owning role gets **200**, the other roles get **403 Forbidden**. Also: `/dashboard` redirects to the right portal; announcements are closed to students; teachers can't edit another teacher's lesson or quiz; students can only take published quizzes for their own section; a quiz is scored immediately and only once; master lists and gradebook exports are restricted. |
-| `tests/Feature/AuthenticationTest.php` | Login, wrong password, lockout after 5 failed attempts, logout, signed-in users kept off the login page, password change with the current password. After login, users return to the page they wanted only if their role may open it (a leftover developer link never sends a teacher to a 403). |
+| `tests/Feature/RoleAccessTest.php` | Every Admin, Teacher and Student page. Guests are sent to login, the owning role gets **200**, the other roles get **403 Forbidden**. Also: `/dashboard` redirects to the right portal; announcements are closed to students; teachers can't edit another teacher's lesson or quiz; students can only take published quizzes for their own section; a quiz is scored immediately and only once; master lists and gradebook exports are restricted. |
+| `tests/Feature/AuthenticationTest.php` | Login, wrong password, lockout after 5 failed attempts, logout, signed-in users kept off the login page, password change with the current password. After login, users return to the page they wanted only if their role may open it (a leftover admin link never sends a teacher to a 403). |
 | `tests/Feature/NotificationTest.php` | Who is notified for lessons, quizzes and announcements (and who isn't); no repeat alerts on edit/re-publish; bell entry is instant while emails wait for the queue worker, then send; nothing is sent when the transaction rolls back; email content, theme and link-injection safety; the Brevo mailer; the bell, live polling endpoint and dropdown refresh, Notifications page, mark as read, and that users can't touch each other's notifications; the System check page and its test sender; and that queued notifications survive serialization on PHP 8.3 (no `readonly` properties). |
 | `tests/Feature/ExampleTest.php` | The home page redirects guests to the login page. |
 
@@ -163,17 +163,17 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 - [x] Sign-in lockout after 5 failed attempts (per email + IP)
 - [x] Automatic sign-out after 30 minutes without activity (`IDLE_TIMEOUT_MINUTES`; typing on a page counts as activity, the bell's background check does not)
 - [x] **Forgot password** on the login page: emails a one-time reset link (valid 60 minutes); the same message is shown whether or not the email has an account, and a reset signs the account out everywhere else
-- [x] Role-based redirect to each portal; role guard middleware (`role:developer`, `role:teacher`, `role:student`)
+- [x] Role-based redirect to each portal; role guard middleware (`role:admin`, `role:teacher`, `role:student`)
 - [x] After login, users return to the page they were trying to open only if their role is allowed there; otherwise to their own dashboard
 - [x] Ownership policies: teachers edit only their own lessons, quizzes and announcements
-- [x] Students only see content for their own section, plus classes a developer approved them into
+- [x] Students only see content for their own section, plus classes an admin approved them into
 - [x] Lesson files on private storage, downloadable only by authorized users
 - [x] Themed 403 "Access denied" page
 - [x] Profile page for all users: change name; change password (requires current password; min. 8 characters with letters and numbers)
 
-### Developer (Admin)
+### Admin
 - [x] Dashboard: institutional banner, totals, section fill levels, faculty by teacher type, current term, recent accounts
-- [x] **Users:** create, edit and delete; filters by role and teacher type; search; initial password with generator; student section assignment with capacity check; can't delete or demote self or the last developer
+- [x] **Users:** create, edit and delete; filters by role and teacher type; search; initial password with generator; student section assignment with capacity check; can't delete or demote self or the last admin
 - [x] **Sections:** SHS and College sections with strand and capacity; strand–level compatibility check; capacity can't go below enrolment
 - [x] **Subjects:** core or strand-specific, per grade level and term
 - [x] **Teacher assignment:** one teacher per subject per section, with a coverage indicator
@@ -191,7 +191,7 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 - [x] **Quizzes:** multiple choice (A–D), pass mark, choose target sections, publish or unpublish, optional answer reveal, questions lock after the first submission
 - [x] **Gradebook:** per term and class: student × quiz grid, averages, pass rate, completion
 - [x] **Exports:** Grades CSV, Submissions CSV, printable class record (browser *Save as PDF*)
-- [x] **Add students:** request to add a student from another section to one of their classes (a developer approves); approved students appear in the gradebook, the dashboard student counts and the section master list (as "Joined from other sections"), and get the class's notifications
+- [x] **Add students:** request to add a student from another section to one of their classes (an admin approves); approved students appear in the gradebook, the dashboard student counts and the section master list (as "Joined from other sections"), and get the class's notifications
 - [x] **Announcements** to the sections they teach
 - [x] **Automatic student notifications** when posting a lesson, publishing a quiz or posting an announcement; the confirmation says how many students were notified (or why not)
 - [x] **Master list** for their own sections
@@ -202,7 +202,7 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 - [x] **Lesson reader:** video player at the top (HTML5 or embedded), then content; open PDFs in the browser, download attachments, previous/next navigation
 - [x] **Quizzes:** one attempt, instant automated scoring, score ring, answer review (if the teacher allows)
 - [x] **My Grades:** results by term and subject with averages
-- [x] **Apply for a subject:** apply to join a class of their course (strand) or a core subject taught in another section; it opens once a developer approves, and the student gets a bell notification and email with the decision
+- [x] **Apply for a subject:** apply to join a class of their course (strand) or a core subject taught in another section; it opens once an admin approves, and the student gets a bell notification and email with the decision
 - [x] **Notifications:** header bell with unread badge and dropdown, full Notifications page (All / Unread, mark one or all as read); clicking a notification opens the lesson, quiz or announcement
 - [x] **Live updates:** the bell checks for new notifications every 15 seconds (and as soon as the student returns to the tab or app), updates the badge and dropdown, and shows a gold pop-up, with no page reload
 - [x] **Announcement page:** each announcement has its own page (the target of announcement notifications)
@@ -210,7 +210,7 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 
 ### Branding and reports
 - [x] Movers Institute logo on the login page, sidebar, phone-size top bar and printed report letterheads
-- [x] Motto "Transform, Learn, Lead" on the login page, Developer portal and report letterheads
+- [x] Motto "Transform, Learn, Lead" on the login page, Admin portal and report letterheads
 - [x] A4 printable reports with letterhead and signature line
 - [x] Live Philippine-time clock (Asia/Manila, 12-hour with AM/PM) in the header for every role; on phones the date and time take turns every 5 seconds so both stay readable
 - [x] Emails use the same gold theme, logo and motto
@@ -292,10 +292,10 @@ Don't run the demo seeder in production. Create the first real admin with Tinker
 
 ```bash
 php artisan tinker
->>> App\Models\User::create(['name' => 'Registrar', 'email' => 'registrar@movers.edu.ph', 'password' => 'ChangeMe123', 'role' => 'developer']);
+>>> App\Models\User::create(['name' => 'Registrar', 'email' => 'registrar@movers.edu.ph', 'password' => 'ChangeMe123', 'role' => 'admin']);
 ```
 
-Sign in, change the password on **My Profile**, then create terms, strands, sections, subjects and accounts from the Developer portal.
+Sign in, change the password on **My Profile**, then create terms, strands, sections, subjects and accounts from the Admin portal.
 
 ### 8.5 Permissions and uploads
 
@@ -323,7 +323,7 @@ Sign in, change the password on **My Profile**, then create terms, strands, sect
 - [ ] Nightly database and `storage/app/private` backups scheduled and a restore tested
 - [ ] `php artisan test` passes on the release build
 - [ ] `QUEUE_CONNECTION=database`, a mailer configured (`MAIL_MAILER=brevo` on Railway) and a verified `MAIL_FROM_ADDRESS`
-- [ ] **Developer → System check → Send test notification** (in-app + email) succeeds
+- [ ] **Admin → System check → Send test notification** (in-app + email) succeeds
 
 ---
 
@@ -358,7 +358,7 @@ The repository includes everything Render needs:
 6. Create the first administrator: **Shell** tab of the service →
    ```bash
    php artisan tinker
-   >>> App\Models\User::create(['name' => 'Registrar', 'email' => 'registrar@movers.edu.ph', 'password' => 'ChangeMe123', 'role' => 'developer']);
+   >>> App\Models\User::create(['name' => 'Registrar', 'email' => 'registrar@movers.edu.ph', 'password' => 'ChangeMe123', 'role' => 'admin']);
    ```
    *(For a demo site only, you can instead set `SEED_DEMO_DATA=true` for one deploy, then set it back to `false`.)*
 
@@ -418,7 +418,7 @@ Railway runs the same `Dockerfile`; TiDB Cloud provides a MySQL-compatible datab
 8. Create the first administrator: service → **⋯ → Shell** (or `railway ssh`), then:
    ```bash
    php artisan tinker
-   >>> App\Models\User::create(['name' => 'Registrar', 'email' => 'registrar@movers.edu.ph', 'password' => 'ChangeMe123', 'role' => 'developer']);
+   >>> App\Models\User::create(['name' => 'Registrar', 'email' => 'registrar@movers.edu.ph', 'password' => 'ChangeMe123', 'role' => 'admin']);
    ```
    For a demo only: set `SEED_DEMO_DATA=true`, redeploy once, then set it back to `false`.
 
@@ -451,7 +451,7 @@ Then deploy on Railway. Migrations already applied are skipped. Uploaded files i
 
 **What triggers them**
 
-| Teacher / developer action | Who is notified |
+| Teacher / admin action | Who is notified |
 |---|---|
 | Posts a lesson | Students whose section takes that subject |
 | Publishes a quiz (first time only) | Students in the quiz's sections. Sections added later to a live quiz are notified when added |
@@ -497,9 +497,9 @@ Railway's Free, Trial and Hobby plans **block SMTP**, so Gmail/Mailtrap SMTP won
 
 Settings: `NOTIFICATIONS_MAIL=false` keeps the bell but turns emails off. `RUN_QUEUE_WORKER=false` if you run a separate worker service.
 
-**System check (Developer)**
+**System check (Admin)**
 
-Developer sidebar → **System check** shows:
+Admin sidebar → **System check** shows:
 
 - the queue connection, mailer, sender address and whether the Brevo key is set;
 - the last 10 notifications created;
@@ -623,7 +623,7 @@ app/
   Enums/                 UserRole, TeacherType, TrackCategory, LevelType, AnnouncementAudience
   Http/Controllers/
     Auth/                LoginController
-    Developer/           Dashboard, Users, Sections, Subjects, SubjectTeacher, AcademicTerms, TrackStrands,
+    Admin/           Dashboard, Users, Sections, Subjects, SubjectTeacher, AcademicTerms, TrackStrands,
                          SystemCheck (notification & email health, test sender)
     Teacher/             Dashboard, Lessons, Quizzes, QuizQuestions, Gradebook (+ export/print)
     Student/             Dashboard, Subjects, Lessons, Quizzes, Grades, Announcements

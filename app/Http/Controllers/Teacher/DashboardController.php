@@ -25,7 +25,7 @@ class DashboardController extends Controller
         $sectionIds = $assignments->pluck('section_id')->unique()->values();
         $subjectIds = $assignments->pluck('subject_id')->unique()->values();
 
-        // Students a developer approved into one of these classes from another section
+        // Students an admin approved into one of these classes from another section
         $joined = ClassEnrollment::approved()->whereIn('subject_teacher_id', $assignments->pluck('id'))->get(['student_id', 'subject_teacher_id']);
 
         // [class id => number of students]: the section's, plus approved joiners

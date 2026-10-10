@@ -39,9 +39,9 @@ class UserFactory extends Factory
         ];
     }
 
-    public function developer(): static
+    public function admin(): static
     {
-        return $this->state(fn () => ['role' => UserRole::Developer, 'teacher_type' => null, 'section_id' => null]);
+        return $this->state(fn () => ['role' => UserRole::Admin, 'teacher_type' => null, 'section_id' => null]);
     }
 
     public function teacher(TeacherType $type = TeacherType::FullTime): static

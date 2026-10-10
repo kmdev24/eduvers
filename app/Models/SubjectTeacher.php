@@ -25,7 +25,7 @@ class SubjectTeacher extends Pivot
     public function subject(): BelongsTo { return $this->belongsTo(Subject::class); }
     public function section(): BelongsTo { return $this->belongsTo(Section::class); }
 
-    /** Students in this class: the section's, plus ones a developer approved. */
+    /** Students in this class: the section's, plus ones an admin approved. */
     public function students(): Builder
     {
         return User::students()->where(fn (Builder $q) => $q

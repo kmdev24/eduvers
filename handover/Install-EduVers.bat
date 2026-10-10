@@ -237,7 +237,7 @@ echo  Installed in : %APP%
 echo  Manual       : %APP%\README.md
 echo.
 if "%SEEDED%"=="1" echo  Demo sign-in accounts (password: password) - change them after signing in:
-if "%SEEDED%"=="1" echo      developer@eduvers.test   teacher@eduvers.test   student@eduvers.test
+if "%SEEDED%"=="1" echo      admin@eduvers.test   teacher@eduvers.test   student@eduvers.test
 if "%SEEDED%"=="1" echo.
 if "%SEEDED%"=="0" echo  Sign in with the accounts your developer gave you.
 if "%SEEDED%"=="0" echo.

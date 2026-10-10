@@ -11,7 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** A student applies to join a class of their course outside their section (a developer approves). */
+/** A student applies to join a class of their course outside their section (an admin approves). */
 class EnrollmentController extends Controller
 {
     public function index(Request $request): View
@@ -39,7 +39,7 @@ class EnrollmentController extends Controller
         $class   = $this->openClasses($student)->with('subject')->findOrFail($data['class_id']);
 
         return ClassEnrollment::request($student, $class, $student)
-            ? back()->with('status', "Application sent for {$class->subject->name}. You can open it once a developer approves it.")
+            ? back()->with('status', "Application sent for {$class->subject->name}. You can open it once an admin approves it.")
             : back()->with('error', 'You already applied for this class.');
     }
 

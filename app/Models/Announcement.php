@@ -48,7 +48,7 @@ class Announcement extends Model
     /** Announcements a given user is allowed to see. */
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        if ($user->isDeveloper()) {
+        if ($user->isAdmin()) {
             return $query;
         }
 

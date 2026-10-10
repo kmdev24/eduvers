@@ -52,8 +52,8 @@ class AuthenticationTest extends TestCase
     {
         $teacher = User::factory()->teacher()->create(['password' => 'secret-pass']);
 
-        // e.g. a developer's session expired on the developer dashboard
-        $this->get(route('developer.dashboard'))->assertRedirect(route('login'));
+        // e.g. an admin's session expired on the admin dashboard
+        $this->get(route('admin.dashboard'))->assertRedirect(route('login'));
 
         $this->post(route('login.store'), ['email' => $teacher->email, 'password' => 'secret-pass'])
             ->assertRedirect(route('dashboard'));
@@ -98,7 +98,7 @@ class AuthenticationTest extends TestCase
 
     public function test_signed_in_users_are_sent_away_from_the_login_page(): void
     {
-        $this->actingAs(User::factory()->developer()->create())
+        $this->actingAs(User::factory()->admin()->create())
             ->get(route('login'))
             ->assertRedirect(route('dashboard'));
     }

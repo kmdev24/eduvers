@@ -3,7 +3,7 @@
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
-use App\Http\Controllers\Developer;
+use App\Http\Controllers\Admin;
 use App\Http\Controllers\LessonAttachmentController;
 use App\Http\Controllers\LessonVideoController;
 use App\Http\Controllers\MasterListController;
@@ -60,38 +60,38 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications/{notification}/open', [NotificationController::class, 'open'])->whereUuid('notification')->name('notifications.open');
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->whereUuid('notification')->name('notifications.read');
 
-    /* Developer + Teacher ----------------------------------------------- */
-    Route::middleware('role:developer,teacher')->group(function () {
+    /* Admin + Teacher ----------------------------------------------- */
+    Route::middleware('role:admin,teacher')->group(function () {
         Route::resource('announcements', AnnouncementController::class)->except(['show', 'create']);
         Route::get('/sections/{section}/master-list', MasterListController::class)->name('sections.masterlist');
     });
 
-    /* Developer (Admin) ------------------------------------------------- */
-    Route::middleware('role:developer')
-        ->prefix('developer')->name('developer.')
+    /* Admin -------------------------------------------------------------- */
+    Route::middleware('role:admin')
+        ->prefix('admin')->name('admin.')
         ->group(function () {
-            Route::get('/dashboard', Developer\DashboardController::class)->name('dashboard');
+            Route::get('/dashboard', Admin\DashboardController::class)->name('dashboard');
 
             // Notification & email health check (+ send a test)
-            Route::get('/system', [Developer\SystemCheckController::class, 'index'])->name('system');
-            Route::post('/system/test-notification', [Developer\SystemCheckController::class, 'test'])->name('system.test');
+            Route::get('/system', [Admin\SystemCheckController::class, 'index'])->name('system');
+            Route::post('/system/test-notification', [Admin\SystemCheckController::class, 'test'])->name('system.test');
 
-            Route::resource('users', Developer\UserController::class)->except('show');
-            Route::resource('sections', Developer\SectionController::class)->except('show');
-            Route::resource('subjects', Developer\SubjectController::class)->except('show');
+            Route::resource('users', Admin\UserController::class)->except('show');
+            Route::resource('sections', Admin\SectionController::class)->except('show');
+            Route::resource('subjects', Admin\SubjectController::class)->except('show');
 
             // Requests to join a class outside the student's section
-            Route::get('/enrollments', [Developer\EnrollmentController::class, 'index'])->name('enrollments.index');
-            Route::patch('/enrollments/{enrollment}', [Developer\EnrollmentController::class, 'update'])->name('enrollments.update');
+            Route::get('/enrollments', [Admin\EnrollmentController::class, 'index'])->name('enrollments.index');
+            Route::patch('/enrollments/{enrollment}', [Admin\EnrollmentController::class, 'update'])->name('enrollments.update');
 
-            Route::get('/subjects/{subject}/teachers', [Developer\SubjectTeacherController::class, 'edit'])->name('subjects.teachers.edit');
-            Route::put('/subjects/{subject}/teachers', [Developer\SubjectTeacherController::class, 'update'])->name('subjects.teachers.update');
+            Route::get('/subjects/{subject}/teachers', [Admin\SubjectTeacherController::class, 'edit'])->name('subjects.teachers.edit');
+            Route::put('/subjects/{subject}/teachers', [Admin\SubjectTeacherController::class, 'update'])->name('subjects.teachers.update');
 
-            Route::post('/terms/year', [Developer\AcademicTermController::class, 'storeYear'])->name('terms.year');
-            Route::patch('/terms/{term}/current', [Developer\AcademicTermController::class, 'makeCurrent'])->name('terms.current');
-            Route::resource('terms', Developer\AcademicTermController::class)->except(['show', 'create']);
+            Route::post('/terms/year', [Admin\AcademicTermController::class, 'storeYear'])->name('terms.year');
+            Route::patch('/terms/{term}/current', [Admin\AcademicTermController::class, 'makeCurrent'])->name('terms.current');
+            Route::resource('terms', Admin\AcademicTermController::class)->except(['show', 'create']);
 
-            Route::resource('tracks', Developer\TrackStrandController::class)
+            Route::resource('tracks', Admin\TrackStrandController::class)
                 ->parameters(['tracks' => 'strand'])
                 ->except(['show', 'create']);
         });

@@ -15,7 +15,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Developers broadcast school-wide (or to all teachers / all students / a section);
+ * Admins broadcast school-wide (or to all teachers / all students / a section);
  * teachers post to the sections they teach.
  */
 class AnnouncementController extends Controller
@@ -31,7 +31,7 @@ class AnnouncementController extends Controller
 
         return view('announcements.index', [
             'announcements' => $announcements,
-            'announcement'  => new Announcement(['audience' => $user->isDeveloper() ? AnnouncementAudience::Everyone : AnnouncementAudience::Section]),
+            'announcement'  => new Announcement(['audience' => $user->isAdmin() ? AnnouncementAudience::Everyone : AnnouncementAudience::Section]),
             'sections'      => $this->sectionsFor($user),
             'audiences'     => $this->audiencesFor($user),
         ]);
@@ -117,7 +117,7 @@ class AnnouncementController extends Controller
     /** @return array<int, AnnouncementAudience> */
     private function audiencesFor(User $user): array
     {
-        return $user->isDeveloper() ? AnnouncementAudience::cases() : [AnnouncementAudience::Section];
+        return $user->isAdmin() ? AnnouncementAudience::cases() : [AnnouncementAudience::Section];
     }
 
     private function sectionsFor(User $user)

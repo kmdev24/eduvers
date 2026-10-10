@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // so generated URLs use https:// and secure cookies work.
         $middleware->trustProxies(at: '*');
 
-        // EduVers role guard: ->middleware('role:developer')
+        // EduVers role guard: ->middleware('role:admin')
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
         ]);

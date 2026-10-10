@@ -9,16 +9,16 @@
 
     // Sidebar menu per role. 'route' => null shows the item as "Soon".
     $nav = match ($user->role) {
-        UserRole::Developer => [
-            ['label' => 'Dashboard',        'icon' => 'home',         'route' => 'developer.dashboard'],
-            ['label' => 'Users',            'icon' => 'users',        'route' => 'developer.users.index',    'match' => 'developer.users.*'],
-            ['label' => 'Sections',         'icon' => 'building',     'route' => 'developer.sections.index', 'match' => 'developer.sections.*'],
-            ['label' => 'Subjects',         'icon' => 'stack',        'route' => 'developer.subjects.index', 'match' => 'developer.subjects.*'],
-            ['label' => 'Enrollment requests', 'icon' => 'user-plus', 'route' => 'developer.enrollments.index', 'match' => 'developer.enrollments.*'],
-            ['label' => 'Academic Terms',   'icon' => 'calendar',     'route' => 'developer.terms.index',    'match' => 'developer.terms.*'],
-            ['label' => 'Tracks & Strands', 'icon' => 'academic-cap', 'route' => 'developer.tracks.index',   'match' => 'developer.tracks.*'],
+        UserRole::Admin => [
+            ['label' => 'Dashboard',        'icon' => 'home',         'route' => 'admin.dashboard'],
+            ['label' => 'Users',            'icon' => 'users',        'route' => 'admin.users.index',    'match' => 'admin.users.*'],
+            ['label' => 'Sections',         'icon' => 'building',     'route' => 'admin.sections.index', 'match' => 'admin.sections.*'],
+            ['label' => 'Subjects',         'icon' => 'stack',        'route' => 'admin.subjects.index', 'match' => 'admin.subjects.*'],
+            ['label' => 'Enrollment requests', 'icon' => 'user-plus', 'route' => 'admin.enrollments.index', 'match' => 'admin.enrollments.*'],
+            ['label' => 'Academic Terms',   'icon' => 'calendar',     'route' => 'admin.terms.index',    'match' => 'admin.terms.*'],
+            ['label' => 'Tracks & Strands', 'icon' => 'academic-cap', 'route' => 'admin.tracks.index',   'match' => 'admin.tracks.*'],
             ['label' => 'Announcements',    'icon' => 'megaphone',    'route' => 'announcements.index',      'match' => 'announcements.*'],
-            ['label' => 'System check',     'icon' => 'shield',       'route' => 'developer.system',         'match' => 'developer.system*'],
+            ['label' => 'System check',     'icon' => 'shield',       'route' => 'admin.system',         'match' => 'admin.system*'],
         ],
         UserRole::Teacher => [
             ['label' => 'Dashboard', 'icon' => 'home',      'route' => 'teacher.dashboard'],

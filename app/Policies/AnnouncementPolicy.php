@@ -7,10 +7,10 @@ use App\Models\User;
 
 class AnnouncementPolicy
 {
-    /** Developers manage every announcement; teachers only their own. */
+    /** Admins manage every announcement; teachers only their own. */
     public function update(User $user, Announcement $announcement): bool
     {
-        return $user->isDeveloper()
+        return $user->isAdmin()
             || ($user->isTeacher() && (int) $announcement->author_id === (int) $user->id);
     }
 

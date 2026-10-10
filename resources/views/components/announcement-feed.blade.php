@@ -14,7 +14,7 @@
                 <p class="text-sm text-slate-500">From the school and your teachers</p>
             </div>
         </div>
-        @if (auth()->user()->isDeveloper() || auth()->user()->isTeacher())
+        @if (auth()->user()->isAdmin() || auth()->user()->isTeacher())
             <a href="{{ route('announcements.index') }}" class="text-sm font-medium text-gold-700 hover:text-gold-900">Manage →</a>
         @endif
     </div>

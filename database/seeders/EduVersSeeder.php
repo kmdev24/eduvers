@@ -61,9 +61,9 @@ class EduVersSeeder extends Seeder
         );
 
         // 5. Users
-        $developer = User::updateOrCreate(['email' => 'developer@eduvers.test'], [
-            'name' => 'EduVers Developer', 'password' => 'password',
-            'role' => UserRole::Developer,
+        $admin = User::updateOrCreate(['email' => 'admin@eduvers.test'], [
+            'name' => 'EduVers Admin', 'password' => 'password',
+            'role' => UserRole::Admin,
         ]);
 
         $teacher = User::updateOrCreate(['email' => 'teacher@eduvers.test'], [
@@ -130,7 +130,7 @@ class EduVersSeeder extends Seeder
             [
                 'body'      => "Welcome to the new EduVers Learning Management System of Movers Institute of Technology and Education.\n\nTransform, Learn, Lead.",
                 'audience'  => AnnouncementAudience::Everyone,
-                'author_id' => $developer->id,
+                'author_id' => $admin->id,
                 'is_pinned' => true,
             ],
         );

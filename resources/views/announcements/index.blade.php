@@ -2,7 +2,7 @@
 
 <x-layouts.app title="Announcements">
     <x-page-header eyebrow="Communication" title="Announcements"
-                   :description="auth()->user()->isDeveloper()
+                   :description="auth()->user()->isAdmin()
                         ? 'Broadcast school-wide notices, or target all teachers, all students or a single section.'
                         : 'Post notices to the sections you teach. They appear on your students\' dashboards.'" />
 

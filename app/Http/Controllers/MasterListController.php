@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 /**
  * Student master list for a section: printable page, or CSV with ?format=csv.
- * Developers can open any section; teachers only sections they teach.
+ * Admins can open any section; teachers only sections they teach.
  */
 class MasterListController extends Controller
 {
@@ -20,7 +20,7 @@ class MasterListController extends Controller
         $user = $request->user();
 
         abort_unless(
-            $user->isDeveloper()
+            $user->isAdmin()
                 || ($user->isTeacher() && $user->teachingAssignments()->where('section_id', $section->id)->exists()),
             403,
             'You can only view master lists for sections you teach.'
@@ -29,7 +29,7 @@ class MasterListController extends Controller
         $section->load(['gradeLevel', 'trackStrand']);
         $students = $section->students()->orderBy('name')->get();
 
-        // Students from other sections a developer approved into one of this section's classes
+        // Students from other sections an admin approved into one of this section's classes
         $joined = ClassEnrollment::approved()
             ->with(['student.section.gradeLevel', 'student.section.trackStrand', 'offering.subject'])
             ->whereHas('offering', fn ($q) => $q->where('section_id', $section->id))

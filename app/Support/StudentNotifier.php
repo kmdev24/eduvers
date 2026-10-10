@@ -24,7 +24,7 @@ use Throwable;
  *
  *  - Lesson:       students whose section takes the lesson's subject (same rule as LessonPolicy)
  *  - Quiz:         students in the sections the quiz is published to
- *    (both also reach students a developer approved into one of those classes)
+ *    (both also reach students an admin approved into one of those classes)
  *  - Announcement: students who can see it (all students, or one section)
  *
  * Every method returns how many students were notified. Failures are reported to the log
@@ -32,7 +32,7 @@ use Throwable;
  */
 class StudentNotifier
 {
-    /** Cache keys read by Developer → System check. */
+    /** Cache keys read by Admin → System check. */
     public const LAST_RUN_KEY   = 'eduvers:notifications:last-run';
     public const LAST_ERROR_KEY = 'eduvers:notifications:last-error';
 
@@ -79,7 +79,7 @@ class StudentNotifier
     public function summary(int $count): string
     {
         if ($this->lastError) {
-            return ' But students could not be notified. A developer can see why under System check.';
+            return ' But students could not be notified. An admin can see why under System check.';
         }
 
         return $count > 0
@@ -130,7 +130,7 @@ class StudentNotifier
         return $notified;
     }
 
-    /** Keep the last run (and last failure) so Developer → System check can show them. */
+    /** Keep the last run (and last failure) so Admin → System check can show them. */
     private function remember(StudentActivityNotification $notification, ?array $sectionIds, int $notified): void
     {
         try {

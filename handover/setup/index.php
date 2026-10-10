@@ -854,7 +854,7 @@ header('Content-Type: text/html; charset=utf-8');
                     <div>
                         <label for="from_name">Sender name <small>(what students see as the sender)</small></label>
                         <input type="text" id="from_name" name="from_name" value="<?= $h($form['from_name']) ?>" maxlength="60">
-                        <p class="field-note">After saving, sign in as the developer and use <b>System check &rarr; Send test</b> to confirm emails arrive.</p>
+                        <p class="field-note">After saving, sign in as the admin and use <b>System check &rarr; Send test</b> to confirm emails arrive.</p>
                     </div>
                 </div>
             </section>

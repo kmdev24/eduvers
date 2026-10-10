@@ -18,7 +18,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
- * Verifies the role guards (role:developer / role:teacher / role:student)
+ * Verifies the role guards (role:admin / role:teacher / role:student)
  * and the ownership rules (policies) that protect EduVers.
  */
 class RoleAccessTest extends TestCase
@@ -37,14 +37,14 @@ class RoleAccessTest extends TestCase
     public static function roleOnlyPages(): array
     {
         return [
-            'developer dashboard' => ['developer.dashboard',      'developer'],
-            'developer users'     => ['developer.users.index',    'developer'],
-            'developer new user'  => ['developer.users.create',   'developer'],
-            'developer sections'  => ['developer.sections.index', 'developer'],
-            'developer subjects'  => ['developer.subjects.index', 'developer'],
-            'developer terms'     => ['developer.terms.index',    'developer'],
-            'developer tracks'    => ['developer.tracks.index',   'developer'],
-            'developer enrollments' => ['developer.enrollments.index', 'developer'],
+            'admin dashboard' => ['admin.dashboard',      'admin'],
+            'admin users'     => ['admin.users.index',    'admin'],
+            'admin new user'  => ['admin.users.create',   'admin'],
+            'admin sections'  => ['admin.sections.index', 'admin'],
+            'admin subjects'  => ['admin.subjects.index', 'admin'],
+            'admin terms'     => ['admin.terms.index',    'admin'],
+            'admin tracks'    => ['admin.tracks.index',   'admin'],
+            'admin enrollments' => ['admin.enrollments.index', 'admin'],
             'teacher dashboard'   => ['teacher.dashboard',        'teacher'],
             'teacher lessons'     => ['teacher.lessons.index',    'teacher'],
             'teacher quizzes'     => ['teacher.quizzes.index',    'teacher'],
@@ -87,9 +87,9 @@ class RoleAccessTest extends TestCase
         }
     }
 
-    public function test_announcements_are_managed_by_developers_and_teachers_only(): void
+    public function test_announcements_are_managed_by_admins_and_teachers_only(): void
     {
-        $this->actingAs($this->userWithRole(UserRole::Developer))->get(route('announcements.index'))->assertOk();
+        $this->actingAs($this->userWithRole(UserRole::Admin))->get(route('announcements.index'))->assertOk();
         $this->actingAs($this->userWithRole(UserRole::Teacher))->get(route('announcements.index'))->assertOk();
         $this->actingAs($this->userWithRole(UserRole::Student))->get(route('announcements.index'))->assertForbidden();
     }
@@ -190,13 +190,13 @@ class RoleAccessTest extends TestCase
         $this->assertDatabaseCount('quiz_submissions', 1);
     }
 
-    public function test_master_list_is_limited_to_developers_and_the_sections_teachers(): void
+    public function test_master_list_is_limited_to_admins_and_the_sections_teachers(): void
     {
         ['subject' => $subject, 'sectionA' => $sectionA, 'sectionB' => $sectionB] = $this->academicStructure();
         $teacher = User::factory()->teacher()->create();
         $subject->assignTeacher($teacher, $sectionA);
 
-        $this->actingAs($this->userWithRole(UserRole::Developer))->get(route('sections.masterlist', $sectionB))->assertOk();
+        $this->actingAs($this->userWithRole(UserRole::Admin))->get(route('sections.masterlist', $sectionB))->assertOk();
         $this->actingAs($teacher)->get(route('sections.masterlist', $sectionA))->assertOk();
         $this->actingAs($teacher)->get(route('sections.masterlist', $sectionB))->assertForbidden();
         $this->actingAs(User::factory()->student($sectionA)->create())->get(route('sections.masterlist', $sectionA))->assertForbidden();
@@ -205,7 +205,7 @@ class RoleAccessTest extends TestCase
     public function test_gradebook_export_is_for_teachers_only(): void
     {
         $this->actingAs($this->userWithRole(UserRole::Student))->get(route('teacher.gradebook.export'))->assertForbidden();
-        $this->actingAs($this->userWithRole(UserRole::Developer))->get(route('teacher.gradebook.export'))->assertForbidden();
+        $this->actingAs($this->userWithRole(UserRole::Admin))->get(route('teacher.gradebook.export'))->assertForbidden();
     }
 
     /* ------------------------------------------------------------------ */
@@ -213,7 +213,7 @@ class RoleAccessTest extends TestCase
     private function userWithRole(UserRole $role): User
     {
         return match ($role) {
-            UserRole::Developer => User::factory()->developer()->create(),
+            UserRole::Admin => User::factory()->admin()->create(),
             UserRole::Teacher   => User::factory()->teacher()->create(),
             UserRole::Student   => User::factory()->student()->create(),
         };

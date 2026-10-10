@@ -25,7 +25,7 @@ use Tests\TestCase;
 
 /**
  * Joining a class outside the student's own section: asked by a teacher or the
- * student, and only effective once a developer approves it.
+ * student, and only effective once an admin approves it.
  */
 class EnrollmentTest extends TestCase
 {
@@ -35,7 +35,7 @@ class EnrollmentTest extends TestCase
     private Section $sectionA;
     private Section $sectionB;
     private User $teacher;
-    private User $developer;
+    private User $admin;
 
     protected function setUp(): void
     {
@@ -55,11 +55,11 @@ class EnrollmentTest extends TestCase
         ]);
 
         $this->teacher   = User::factory()->teacher()->create();
-        $this->developer = User::factory()->developer()->create();
+        $this->admin = User::factory()->admin()->create();
         $this->subject->assignTeacher($this->teacher, $this->sectionA); // the class is taught in section A only
     }
 
-    public function test_a_teachers_request_only_gives_access_after_a_developer_approves_it(): void
+    public function test_a_teachers_request_only_gives_access_after_an_admin_approves_it(): void
     {
         $student = User::factory()->student($this->sectionB)->create();
         $class   = $this->teacher->teachingAssignments()->first();
@@ -79,11 +79,11 @@ class EnrollmentTest extends TestCase
         $this->actingAs($student)->get(route('student.quizzes.show', $quiz))->assertForbidden();
 
         // Students and teachers can't approve
-        $this->actingAs($student)->patch(route('developer.enrollments.update', $enrollment), ['status' => 'approved'])->assertForbidden();
-        $this->actingAs($this->teacher)->patch(route('developer.enrollments.update', $enrollment), ['status' => 'approved'])->assertForbidden();
+        $this->actingAs($student)->patch(route('admin.enrollments.update', $enrollment), ['status' => 'approved'])->assertForbidden();
+        $this->actingAs($this->teacher)->patch(route('admin.enrollments.update', $enrollment), ['status' => 'approved'])->assertForbidden();
 
-        $this->actingAs($this->developer)
-            ->patch(route('developer.enrollments.update', $enrollment), ['status' => 'approved'])
+        $this->actingAs($this->admin)
+            ->patch(route('admin.enrollments.update', $enrollment), ['status' => 'approved'])
             ->assertSessionHas('status');
 
         $this->actingAs($student)->get(route('student.subjects.show', $this->subject))->assertOk()->assertSee($quiz->title);
@@ -95,7 +95,7 @@ class EnrollmentTest extends TestCase
         $this->assertTrue(Gradebook::build($this->teacher, null, $class->id)['students']->contains($student));
 
         // Removing the student takes the access away again
-        $this->actingAs($this->developer)->patch(route('developer.enrollments.update', $enrollment), ['status' => 'rejected']);
+        $this->actingAs($this->admin)->patch(route('admin.enrollments.update', $enrollment), ['status' => 'rejected']);
         $this->actingAs($student)->get(route('student.lessons.show', $lesson))->assertForbidden();
     }
 
@@ -149,7 +149,7 @@ class EnrollmentTest extends TestCase
         $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $class->id])->assertSessionHas('error'); // already waiting
 
         $enrollment = ClassEnrollment::sole();
-        $this->actingAs($this->developer)->patch(route('developer.enrollments.update', $enrollment), ['status' => 'rejected']);
+        $this->actingAs($this->admin)->patch(route('admin.enrollments.update', $enrollment), ['status' => 'rejected']);
         $this->actingAs($student)->get(route('student.subjects.show', $this->subject))->assertForbidden();
 
         $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $class->id])->assertSessionHas('status');
@@ -165,7 +165,7 @@ class EnrollmentTest extends TestCase
         $inClass  = User::factory()->student($this->sectionA)->create();
         $class    = $this->teacher->teachingAssignments()->first();
 
-        ClassEnrollment::request($joined, $class, $this->teacher)->decide(EnrollmentStatus::Approved, $this->developer);
+        ClassEnrollment::request($joined, $class, $this->teacher)->decide(EnrollmentStatus::Approved, $this->admin);
         ClassEnrollment::request($waiting, $class, $this->teacher);
 
         $this->assertSame(2, app(StudentNotifier::class)->lessonPosted($this->lesson()));
@@ -182,7 +182,7 @@ class EnrollmentTest extends TestCase
         $class   = $this->teacher->teachingAssignments()->first();
         $request = ClassEnrollment::request($student, $class, $student);
 
-        $this->actingAs($this->developer)->patch(route('developer.enrollments.update', $request), ['status' => 'approved']);
+        $this->actingAs($this->admin)->patch(route('admin.enrollments.update', $request), ['status' => 'approved']);
 
         Notification::assertSentTo($student, EnrollmentDecisionNotification::class, function (EnrollmentDecisionNotification $n, array $channels) {
             return $n->data['headline'] === 'Enrollment approved'
@@ -191,7 +191,7 @@ class EnrollmentTest extends TestCase
         });
 
         // Clicking Approve again decides nothing and does not notify twice
-        $this->actingAs($this->developer)->patch(route('developer.enrollments.update', $request), ['status' => 'approved']);
+        $this->actingAs($this->admin)->patch(route('admin.enrollments.update', $request), ['status' => 'approved']);
         Notification::assertCount(1);
     }
 
@@ -200,7 +200,7 @@ class EnrollmentTest extends TestCase
         User::factory()->student($this->sectionA)->create(['name' => 'Ana In-Section']);
         $joined = User::factory()->student($this->sectionB)->create(['name' => 'Ben Joined']);
         $class  = $this->teacher->teachingAssignments()->first();
-        ClassEnrollment::request($joined, $class, $this->teacher)->decide(EnrollmentStatus::Approved, $this->developer);
+        ClassEnrollment::request($joined, $class, $this->teacher)->decide(EnrollmentStatus::Approved, $this->admin);
 
         $this->actingAs($this->teacher)->get(route('teacher.dashboard'))
             ->assertOk()
@@ -215,7 +215,7 @@ class EnrollmentTest extends TestCase
         $this->assertStringContainsString('ICT-PROG1', $csv);
 
         // Moving the student into the section drops the now-pointless request, so nobody is counted twice
-        $this->actingAs($this->developer)->put(route('developer.users.update', $joined), [
+        $this->actingAs($this->admin)->put(route('admin.users.update', $joined), [
             'name' => $joined->name, 'email' => $joined->email, 'role' => UserRole::Student->value, 'section_id' => $this->sectionA->id,
         ])->assertSessionHasNoErrors();
 

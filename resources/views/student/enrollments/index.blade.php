@@ -2,7 +2,7 @@
 
 <x-layouts.app title="Apply for a subject">
     <x-page-header eyebrow="Learning" title="Apply for a subject"
-                   :description="$student->section ? 'Join a class of your course ('.$student->section->trackStrand->name.') that is taught in another section. A developer approves each application.' : 'You are not enrolled in a section yet.'" />
+                   :description="$student->section ? 'Join a class of your course ('.$student->section->trackStrand->name.') that is taught in another section. An admin approves each application.' : 'You are not enrolled in a section yet.'" />
 
     @php $requestFor = $requests->keyBy('subject_teacher_id'); @endphp
 

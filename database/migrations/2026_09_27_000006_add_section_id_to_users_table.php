@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Enrols a STUDENT in one section (null for developers / teachers).
+ * Enrols a STUDENT in one section (null for admins / teachers).
  * Lets the app resolve a student's subjects, teachers, lessons and quizzes.
  */
 return new class extends Migration

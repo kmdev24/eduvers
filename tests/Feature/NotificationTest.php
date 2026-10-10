@@ -167,13 +167,13 @@ class NotificationTest extends TestCase
     public function test_school_wide_announcements_reach_every_student_but_teacher_only_ones_reach_none(): void
     {
         Notification::fake();
-        $developer = User::factory()->developer()->create();
+        $admin = User::factory()->admin()->create();
 
-        $this->actingAs($developer)->post(route('announcements.store'), [
+        $this->actingAs($admin)->post(route('announcements.store'), [
             'title' => 'Enrollment is open', 'body' => 'See the registrar.', 'audience' => AnnouncementAudience::Students->value,
         ]);
         Notification::assertCount(5); // all five students, including one without a section
-        Notification::assertNotSentTo([$this->teacher, $developer], CourseAnnouncementNotification::class);
+        Notification::assertNotSentTo([$this->teacher, $admin], CourseAnnouncementNotification::class);
 
         $this->post(route('announcements.store'), [
             'title' => 'Faculty meeting', 'body' => 'Room 101.', 'audience' => AnnouncementAudience::Teachers->value,
@@ -469,7 +469,7 @@ class NotificationTest extends TestCase
 
         $this->assertSame(1, Lesson::count()); // the lesson itself is still saved
 
-        $this->actingAs(User::factory()->developer()->create())->get(route('developer.system'))
+        $this->actingAs(User::factory()->admin()->create())->get(route('admin.system'))
             ->assertOk()
             ->assertSee('Last error')
             ->assertSee('While notifying “Loops”', false)
@@ -480,7 +480,7 @@ class NotificationTest extends TestCase
     {
         Schema::drop('notifications');
 
-        $this->actingAs(User::factory()->developer()->create())->get(route('developer.system'))
+        $this->actingAs(User::factory()->admin()->create())->get(route('admin.system'))
             ->assertOk()->assertSee('table missing');
     }
 
@@ -488,24 +488,24 @@ class NotificationTest extends TestCase
     {
         app(StudentNotifier::class)->lessonPosted($this->makeLesson('Loops'));
 
-        $this->actingAs(User::factory()->developer()->create())->get(route('developer.system'))
+        $this->actingAs(User::factory()->admin()->create())->get(route('admin.system'))
             ->assertOk()
             ->assertSee('3 total')
             ->assertSee('Lesson: Loops')
             ->assertSee($this->studentA1->name);
 
         foreach ([$this->teacher, $this->studentA1] as $user) {
-            $this->actingAs($user)->get(route('developer.system'))->assertForbidden();
+            $this->actingAs($user)->get(route('admin.system'))->assertForbidden();
         }
     }
 
     public function test_system_check_test_notification_reports_success_and_email_errors(): void
     {
-        $developer = User::factory()->developer()->create();
+        $admin = User::factory()->admin()->create();
 
-        $this->actingAs($developer)->from(route('developer.system'))
-            ->post(route('developer.system.test'), ['student_id' => $this->studentB->id, 'channels' => 'database'])
-            ->assertRedirect(route('developer.system'))
+        $this->actingAs($admin)->from(route('admin.system'))
+            ->post(route('admin.system.test'), ['student_id' => $this->studentB->id, 'channels' => 'database'])
+            ->assertRedirect(route('admin.system'))
             ->assertSessionHas('status', fn ($s) => str_contains($s, 'In-app: sent ✓'));
         $this->assertSame('EduVers notifications are working', $this->studentB->notifications()->first()->data['title']);
 
@@ -513,7 +513,7 @@ class NotificationTest extends TestCase
         config(['mail.default' => 'brevo', 'mail.mailers.brevo.key' => 'bad']);
         Http::fake(['api.brevo.com/*' => Http::response(['message' => 'Key not found'], 401)]);
 
-        $this->post(route('developer.system.test'), ['student_id' => $this->studentB->id, 'channels' => 'both'])
+        $this->post(route('admin.system.test'), ['student_id' => $this->studentB->id, 'channels' => 'both'])
             ->assertSessionHas('error', fn ($s) => str_contains($s, 'In-app: sent ✓') && str_contains($s, 'Email FAILED') && str_contains($s, 'Key not found'));
     }
 

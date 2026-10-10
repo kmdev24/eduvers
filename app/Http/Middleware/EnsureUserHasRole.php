@@ -9,8 +9,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Route guard: only lets users with one of the given roles through.
  *
- * Usage:  ->middleware('role:developer')
- *         ->middleware('role:developer,teacher')
+ * Usage:  ->middleware('role:admin')
+ *         ->middleware('role:admin,teacher')
  */
 class EnsureUserHasRole
 {

@@ -44,9 +44,9 @@ class User extends Authenticatable
     /*  Role helpers                                                       */
     /* ------------------------------------------------------------------ */
 
-    public function isDeveloper(): bool { return $this->role === UserRole::Developer; }
-    public function isTeacher(): bool   { return $this->role === UserRole::Teacher; }
-    public function isStudent(): bool   { return $this->role === UserRole::Student; }
+    public function isAdmin(): bool   { return $this->role === UserRole::Admin; }
+    public function isTeacher(): bool { return $this->role === UserRole::Teacher; }
+    public function isStudent(): bool { return $this->role === UserRole::Student; }
 
     /** Up to two initials for avatars, e.g. "Maria Santos" -> "MS". */
     public function initials(): string
@@ -74,9 +74,9 @@ class User extends Authenticatable
     /*  Scopes                                                             */
     /* ------------------------------------------------------------------ */
 
-    public function scopeDevelopers(Builder $query): Builder { return $query->where('role', UserRole::Developer); }
-    public function scopeTeachers(Builder $query): Builder   { return $query->where('role', UserRole::Teacher); }
-    public function scopeStudents(Builder $query): Builder   { return $query->where('role', UserRole::Student); }
+    public function scopeAdmins(Builder $query): Builder   { return $query->where('role', UserRole::Admin); }
+    public function scopeTeachers(Builder $query): Builder { return $query->where('role', UserRole::Teacher); }
+    public function scopeStudents(Builder $query): Builder { return $query->where('role', UserRole::Student); }
 
     public function scopeOfTeacherType(Builder $query, TeacherType|string $type): Builder
     {
@@ -104,7 +104,7 @@ class User extends Authenticatable
         return $this->hasMany(ClassEnrollment::class, 'student_id');
     }
 
-    /** Classes the student attends: their section's, plus ones a developer approved. */
+    /** Classes the student attends: their section's, plus ones an admin approved. */
     public function studentClasses(): Builder
     {
         return SubjectTeacher::query()->where(fn (Builder $q) => $q

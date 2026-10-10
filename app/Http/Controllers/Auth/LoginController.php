@@ -53,7 +53,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
 
         // Back to the page they were trying to open, but only if their role may open it.
-        // (A developer link left over from an earlier session must not 403 a teacher.)
+        // (An admin link left over from an earlier session must not 403 a teacher.)
         $intended = $request->session()->pull('url.intended');
 
         return redirect()->to(

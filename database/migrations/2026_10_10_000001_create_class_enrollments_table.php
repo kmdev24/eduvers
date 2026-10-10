@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * A student joining one class (subject × section) outside their own section,
- * requested by a teacher or by the student, approved by a developer.
+ * requested by a teacher or by the student, approved by an admin.
  */
 return new class extends Migration
 {
