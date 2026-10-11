@@ -194,22 +194,31 @@ set "NODEDIR="
 for /f "delims=" %%P in ('where node 2^>nul') do call :checknode "%%~dpP."
 for /d %%D in ("%LARAGON%\bin\nodejs\*") do call :checknode "%%~fD"
 if not defined NODEDIR goto npm_nonode
-if exist "%APP%\node_modules\.bin\vite.cmd" goto npm_have
 set "PATH=%NODEDIR%;%PATH%"
+if exist "%APP%\node_modules\.bin\vite.cmd" goto npm_have
 call npm install --no-audit --no-fund
 if errorlevel 1 goto npm_failed
 echo       Done.
-goto npm_done
+goto npm_styles
 :npm_have
 echo       Already installed.
+
+rem A package built by Make-Handover-Package.bat already carries the styles. A copy
+rem made by hand may not, and without them every page loads unstyled.
+:npm_styles
+if exist "%APP%\public\build\manifest.json" goto npm_done
+echo       Building the styles (this copy has none yet)...
+call npm run build
+if errorlevel 1 echo       Could not build the styles. Run "npm run build" later.
 goto npm_done
 :npm_failed
 echo       Skipped: npm install failed (no internet?). EduVers works anyway.
 echo       "Edit EduVers" tries again the next time it opens.
 goto npm_done
 :npm_nonode
-echo       Skipped: Node.js 20.19 or newer is not installed. EduVers works anyway.
-echo       To change styles later, install the LTS version from https://nodejs.org/
+echo       Skipped: Node.js 20.19 or newer is not installed.
+if not exist "%APP%\public\build\manifest.json" echo       WARNING: this copy has no built styles, so pages will look plain.
+if not exist "%APP%\public\build\manifest.json" echo       Install Node.js LTS from https://nodejs.org/ and run "npm run build".
 :npm_done
 
 rem ---------------------------------------------------------------- 8
