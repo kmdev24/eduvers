@@ -68,7 +68,7 @@ if not exist "%OUT%" goto err_nofolder
 
 robocopy "%SRC%" "%OUT%\eduvers" /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP ^
  /XD "%SRC%\node_modules" "%SRC%\.git" "%SRC%\.claude" "%SRC%\graphify-out" "%SRC%\storage\logs" "%SRC%\storage\framework\sessions" "%SRC%\storage\framework\views" "%SRC%\storage\framework\cache" "%SRC%\storage\framework\testing" ^
- /XF "%SRC%\.env" "%SRC%\CLAUDE.md" "%SRC%\eduvers.sql" "%SRC%\eduvers.zip" "%SRC%\.phpunit.result.cache" "%SRC%\public\hot" "%SRC%\bootstrap\cache\config.php" "%SRC%\bootstrap\cache\routes-v7.php" "%SRC%\bootstrap\cache\events.php" "%SRC%\storage\app\eduvers-setup-saved.txt" .env.backup .env.tmp .env.production .env.local
+ /XF "%SRC%\.env" "%SRC%\eduvers.sql" "%SRC%\eduvers.zip" "%SRC%\.phpunit.result.cache" "%SRC%\public\hot" "%SRC%\bootstrap\cache\config.php" "%SRC%\bootstrap\cache\routes-v7.php" "%SRC%\bootstrap\cache\events.php" "%SRC%\storage\app\eduvers-setup-saved.txt" .env.backup .env.tmp .env.production .env.local
 if errorlevel 8 goto err_copy
 if exist "%OUT%\eduvers\.env" goto err_envleak
 echo       Done.
