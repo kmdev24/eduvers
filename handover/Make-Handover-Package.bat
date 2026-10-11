@@ -67,7 +67,7 @@ mkdir "%OUT%" 2>nul
 if not exist "%OUT%" goto err_nofolder
 
 robocopy "%SRC%" "%OUT%\eduvers" /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP ^
- /XD "%SRC%\node_modules" "%SRC%\.git" "%SRC%\Claude outputs" "%SRC%\storage\logs" "%SRC%\storage\framework\sessions" "%SRC%\storage\framework\views" "%SRC%\storage\framework\cache" "%SRC%\storage\framework\testing" ^
+ /XD "%SRC%\node_modules" "%SRC%\.git" "%SRC%\storage\logs" "%SRC%\storage\framework\sessions" "%SRC%\storage\framework\views" "%SRC%\storage\framework\cache" "%SRC%\storage\framework\testing" ^
  /XF "%SRC%\.env" "%SRC%\eduvers.sql" "%SRC%\eduvers.zip" "%SRC%\.phpunit.result.cache" "%SRC%\public\hot" "%SRC%\bootstrap\cache\config.php" "%SRC%\bootstrap\cache\routes-v7.php" "%SRC%\bootstrap\cache\events.php" "%SRC%\storage\app\eduvers-setup-saved.txt" .env.backup .env.tmp .env.production .env.local
 if errorlevel 8 goto err_copy
 if exist "%OUT%\eduvers\.env" goto err_envleak
@@ -188,6 +188,8 @@ set "TXT=%OUT%\READ-ME-FIRST.txt"
 >>"%TXT%" echo  php\                  the PHP version EduVers needs
 >>"%TXT%" echo.
 >>"%TXT%" echo  The full manual is eduvers\README.md
+>>"%TXT%" echo  For a developer taking this over, start with
+>>"%TXT%" echo  eduvers\handover\HOW-EDUVERS-WORKS.md  (plain English, no experience needed)
 >>"%TXT%" echo.
 >>"%TXT%" echo Package created: %STAMP%
 echo       Done.

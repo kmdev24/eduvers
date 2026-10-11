@@ -54,3 +54,11 @@ Thumbs.db
 
 # Local Docker overrides
 docker-compose.override.yml
+
+# graphify knowledge graph (rebuilt locally)
+/graphify-out
+
+# Local notes and editor settings (not part of the application)
+/.claude
+/CLAUDE.md
+/AGENTS.md
