@@ -1,7 +1,7 @@
 @use('App\Enums\TeacherType')
 @use('App\Enums\UserRole')
 
-<x-layouts.app title="Admin Dashboard">
+<x-layouts.app :title="auth()->user()->role->label().' Dashboard'">
 
     {{-- Institutional banner --}}
     <section class="relative mb-8 overflow-hidden rounded-2xl bg-ink-gradient p-6 text-ivory shadow-elevated sm:p-8">
@@ -11,7 +11,7 @@
         <div class="relative flex flex-col gap-6 md:flex-row md:items-center">
             <x-logo class="size-20 ring-4" />
             <div class="flex-1">
-                <p class="text-xs font-semibold uppercase tracking-luxe text-gold-400">Admin portal</p>
+                <p class="text-xs font-semibold uppercase tracking-luxe text-gold-400">{{ auth()->user()->role->label() }} portal</p>
                 <h2 class="mt-1 font-serif text-2xl font-semibold sm:text-3xl">Movers Institute of Technology and Education</h2>
                 <p class="mt-2 font-serif text-lg text-gold-300 italic">Transform, Learn, Lead</p>
             </div>

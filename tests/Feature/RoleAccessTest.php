@@ -79,6 +79,15 @@ class RoleAccessTest extends TestCase
         }
     }
 
+    public function test_the_shared_dashboard_is_titled_for_the_signed_in_role(): void
+    {
+        $this->actingAs($this->userWithRole(UserRole::Admin))->get(route('admin.dashboard'))
+            ->assertSee('Admin Dashboard')->assertSee('Admin portal')->assertDontSee('Developer Dashboard');
+
+        $this->actingAs($this->userWithRole(UserRole::Developer))->get(route('admin.dashboard'))
+            ->assertSee('Developer Dashboard')->assertSee('Developer portal')->assertDontSee('Admin Dashboard');
+    }
+
     public function test_dashboard_link_sends_each_role_to_its_own_dashboard(): void
     {
         foreach (UserRole::cases() as $role) {
