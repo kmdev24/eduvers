@@ -16,6 +16,8 @@ class AcademicTerm extends Model
         'name',
         'term_number',
         'academic_year',
+        'starts_on',
+        'ends_on',
         'is_current',
     ];
 
@@ -24,6 +26,8 @@ class AcademicTerm extends Model
         return [
             'term_number' => 'integer',
             'is_current'  => 'boolean',
+            'starts_on'   => 'date',
+            'ends_on'     => 'date',
         ];
     }
 
@@ -35,15 +39,37 @@ class AcademicTerm extends Model
 
     /* Scopes & helpers ------------------------------------------------- */
 
+    /** Marked current by hand. */
     public function scopeCurrent(Builder $query): Builder
     {
         return $query->where('is_current', true);
     }
 
-    /** Usage: AcademicTerm::getCurrent() */
+    /** Running today according to the school calendar. */
+    public function scopeRunningToday(Builder $query): Builder
+    {
+        return $query->whereDate('starts_on', '<=', today())
+            ->whereDate('ends_on', '>=', today())
+            ->orderBy('starts_on');
+    }
+
+    /**
+     * The term the school is in. The calendar decides it, so a new semester starts on its
+     * own date; the hand-set flag is the fallback for terms with no dates yet.
+     *
+     * Usage: AcademicTerm::getCurrent()
+     */
     public static function getCurrent(): ?self
     {
-        return static::query()->current()->first();
+        return static::query()->runningToday()->first()
+            ?? static::query()->current()->first();
+    }
+
+    /** Whether the calendar, rather than the flag, is what makes this term current. */
+    public function isRunningToday(): bool
+    {
+        return $this->starts_on && $this->ends_on
+            && $this->starts_on->lte(today()) && $this->ends_on->gte(today());
     }
 
     /** Mark this term as the only current term. */

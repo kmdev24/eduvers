@@ -2,7 +2,7 @@
 
 <x-layouts.app title="Tracks & Strands">
     <x-page-header eyebrow="Academic structure" title="Tracks & strands"
-                   description="Strands and programs, grouped by category. Sections and strand-specific subjects are linked to these." />
+                   description="Strands and programs, grouped by category. Sections and strand-specific subjects are linked to these, and they are what the sign-in page shows visitors." />
 
     <div class="mt-8 grid gap-6 xl:grid-cols-3">
 

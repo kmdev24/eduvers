@@ -128,7 +128,13 @@
                 <input type="hidden" name="reveal_answers" value="0">
                 <input type="checkbox" name="reveal_answers" value="1" class="mt-0.5 rounded border-ivory-300 text-gold-600 focus:ring-gold-500/40"
                        @checked(old('reveal_answers', $quiz->reveal_answers))>
-                <span>Show correct answers to students after they submit</span>
+                <span>
+                    Show correct answers to students after they submit
+                    <span class="mt-0.5 block text-xs text-amber-700">
+                        Off by default: a student who has finished can otherwise pass the answers
+                        to classmates who have not taken the quiz yet. Turn it on once everyone has.
+                    </span>
+                </span>
             </label>
 
             <button type="submit" class="btn-dark w-full">Save settings</button>

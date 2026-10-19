@@ -55,6 +55,4 @@ Thumbs.db
 # Local Docker overrides
 docker-compose.override.yml
 
-# graphify knowledge graph (rebuilt locally)
-/graphify-out
 

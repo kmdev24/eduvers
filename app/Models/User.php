@@ -22,8 +22,10 @@ use Illuminate\Notifications\Notifiable;
  * @property UserRole         $role
  * @property TeacherType|null $teacher_type
  * @property int|null         $section_id
+ * @property int|null         $grade_level_id
+ * @property int|null         $track_strand_id
  */
-#[Fillable(['name', 'email', 'password', 'role', 'teacher_type', 'section_id'])]
+#[Fillable(['name', 'email', 'password', 'role', 'teacher_type', 'section_id', 'grade_level_id', 'track_strand_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -44,9 +46,10 @@ class User extends Authenticatable
     /*  Role helpers                                                       */
     /* ------------------------------------------------------------------ */
 
-    public function isAdmin(): bool   { return $this->role === UserRole::Admin; }
-    public function isTeacher(): bool { return $this->role === UserRole::Teacher; }
-    public function isStudent(): bool { return $this->role === UserRole::Student; }
+    public function isDeveloper(): bool { return $this->role === UserRole::Developer; }
+    public function isAdmin(): bool    { return $this->role->isAdminLevel(); }
+    public function isTeacher(): bool  { return $this->role === UserRole::Teacher; }
+    public function isStudent(): bool  { return $this->role === UserRole::Student; }
 
     /** Up to two initials for avatars, e.g. "Maria Santos" -> "MS". */
     public function initials(): string
@@ -74,8 +77,9 @@ class User extends Authenticatable
     /*  Scopes                                                             */
     /* ------------------------------------------------------------------ */
 
-    public function scopeAdmins(Builder $query): Builder   { return $query->where('role', UserRole::Admin); }
-    public function scopeTeachers(Builder $query): Builder { return $query->where('role', UserRole::Teacher); }
+    public function scopeAdmins(Builder $query): Builder      { return $query->where('role', UserRole::Admin); }
+    public function scopeDevelopers(Builder $query): Builder  { return $query->where('role', UserRole::Developer); }
+    public function scopeTeachers(Builder $query): Builder    { return $query->where('role', UserRole::Teacher); }
     public function scopeStudents(Builder $query): Builder { return $query->where('role', UserRole::Student); }
 
     public function scopeOfTeacherType(Builder $query, TeacherType|string $type): Builder
@@ -93,6 +97,18 @@ class User extends Authenticatable
         return $this->belongsTo(Section::class);
     }
 
+    /** The student's year level: their own, which a section keeps in step with. */
+    public function gradeLevel(): BelongsTo
+    {
+        return $this->belongsTo(GradeLevel::class);
+    }
+
+    /** The student's strand or course, likewise. */
+    public function trackStrand(): BelongsTo
+    {
+        return $this->belongsTo(TrackStrand::class);
+    }
+
     public function quizSubmissions(): HasMany
     {
         return $this->hasMany(QuizSubmission::class, 'student_id');
@@ -102,6 +118,33 @@ class User extends Authenticatable
     public function classEnrollments(): HasMany
     {
         return $this->hasMany(ClassEnrollment::class, 'student_id');
+    }
+
+    /**
+     * Put the student in a section — which is what enrolling them in a strand or course
+     * means: the section carries the year level and the strand, and every subject of that
+     * strand is already a class of the section, so they are enrolled in all of it at once.
+     */
+    public function enrollInSection(?Section $section): void
+    {
+        $this->section_id = $section?->id;
+
+        // A section decides the year level and strand; without one the student keeps theirs
+        if ($section) {
+            $this->grade_level_id  = $section->grade_level_id;
+            $this->track_strand_id = $section->track_strand_id;
+        }
+
+        $this->save();
+        $this->dropRedundantClassEnrollments();
+    }
+
+    /** A request to join a class their own section already takes means nothing now. */
+    public function dropRedundantClassEnrollments(): void
+    {
+        $this->classEnrollments()
+            ->whereHas('offering', fn ($q) => $q->where('section_id', $this->section_id))
+            ->delete();
     }
 
     /** Classes the student attends: their section's, plus ones an admin approved. */

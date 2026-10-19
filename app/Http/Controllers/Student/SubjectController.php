@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicTerm;
 use App\Models\Lesson;
 use App\Models\Quiz;
 use App\Models\Subject;
@@ -15,8 +16,10 @@ class SubjectController extends Controller
     public function index(Request $request): View
     {
         $student = $request->user()->load('section.gradeLevel', 'section.trackStrand');
+        $term    = AcademicTerm::getCurrent();
 
         $classes = $student->studentClasses()
+            ->inTerm($term?->id)
             ->with(['subject.academicTerm', 'teacher', 'section'])
             ->get()
             ->sortBy(fn (SubjectTeacher $c) => $c->subject->name)
@@ -32,7 +35,7 @@ class SubjectController extends Controller
             ->selectRaw('subject_id, COUNT(*) as total')->groupBy('subject_id')
             ->toBase()->pluck('total', 'subject_id');
 
-        return view('student.subjects.index', compact('student', 'classes', 'lessonCounts', 'quizCounts'));
+        return view('student.subjects.index', compact('student', 'term', 'classes', 'lessonCounts', 'quizCounts'));
     }
 
     public function show(Request $request, Subject $subject): View

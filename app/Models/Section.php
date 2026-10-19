@@ -13,6 +13,23 @@ class Section extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::created(fn (Section $section) => $section->syncClasses());
+
+        static::updated(function (Section $section) {
+            if ($section->wasChanged(['grade_level_id', 'track_strand_id'])) {
+                $section->syncClasses();
+
+                // Its students move with it (User::enrollInSection keeps the same rule)
+                $section->students()->update([
+                    'grade_level_id'  => $section->grade_level_id,
+                    'track_strand_id' => $section->track_strand_id,
+                ]);
+            }
+        });
+    }
+
     protected $fillable = [
         'name',
         'capacity',
@@ -65,6 +82,27 @@ class Section extends Model
     }
 
     /* Helpers ---------------------------------------------------------- */
+
+    /**
+     * The mirror of Subject::eligibleSections(): every subject of this section's year level,
+     * of its strand or core, exists as one of its classes. Adds the missing ones only.
+     */
+    public function syncClasses(): void
+    {
+        $missing = Subject::query()
+            ->where('grade_level_id', $this->grade_level_id)
+            ->where(fn ($q) => $q->where('track_strand_id', $this->track_strand_id)->orWhereNull('track_strand_id'))
+            ->whereNotIn('id', $this->assignments()->select('subject_id'))
+            ->pluck('id');
+
+        SubjectTeacher::insert($missing->map(fn (int $subjectId) => [
+            'subject_id' => $subjectId,
+            'section_id' => $this->id,
+            'teacher_id' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ])->all());
+    }
 
     public function availableSlots(): int
     {

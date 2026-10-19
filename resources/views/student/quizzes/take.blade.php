@@ -1,4 +1,5 @@
-<x-layouts.app :title="$quiz->title">
+{{-- No help button while a quiz is being answered --}}
+<x-layouts.app :title="$quiz->title" :assistant="false">
     <div class="mx-auto max-w-3xl">
         <a href="{{ route('student.quizzes.index') }}" class="text-sm font-medium text-gold-700 hover:text-gold-900">← Quizzes</a>
 

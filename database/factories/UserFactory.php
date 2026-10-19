@@ -44,6 +44,11 @@ class UserFactory extends Factory
         return $this->state(fn () => ['role' => UserRole::Admin, 'teacher_type' => null, 'section_id' => null]);
     }
 
+    public function developer(): static
+    {
+        return $this->state(fn () => ['role' => UserRole::Developer, 'teacher_type' => null, 'section_id' => null]);
+    }
+
     public function teacher(TeacherType $type = TeacherType::FullTime): static
     {
         return $this->state(fn () => ['role' => UserRole::Teacher, 'teacher_type' => $type, 'section_id' => null]);
@@ -51,7 +56,14 @@ class UserFactory extends Factory
 
     public function student(?Section $section = null): static
     {
-        return $this->state(fn () => ['role' => UserRole::Student, 'teacher_type' => null, 'section_id' => $section?->id]);
+        // A section carries the year level and strand, so the student's own follow it
+        return $this->state(fn () => [
+            'role'            => UserRole::Student,
+            'teacher_type'    => null,
+            'section_id'      => $section?->id,
+            'grade_level_id'  => $section?->grade_level_id,
+            'track_strand_id' => $section?->track_strand_id,
+        ]);
     }
 
     /**

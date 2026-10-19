@@ -25,6 +25,12 @@ class SubjectTeacher extends Pivot
     public function subject(): BelongsTo { return $this->belongsTo(Subject::class); }
     public function section(): BelongsTo { return $this->belongsTo(Section::class); }
 
+    /** Classes whose subject belongs to this term. Null term = every term. */
+    public function scopeInTerm(Builder $query, ?int $termId): Builder
+    {
+        return $query->when($termId, fn (Builder $q) => $q->whereHas('subject', fn (Builder $s) => $s->where('academic_term_id', $termId)));
+    }
+
     /** Students in this class: the section's, plus ones an admin approved. */
     public function students(): Builder
     {

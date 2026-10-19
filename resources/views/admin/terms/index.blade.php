@@ -18,28 +18,35 @@
 
                     <ul class="divide-y divide-ivory-200">
                         @foreach ($terms as $term)
-                            <li @class(['flex flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center', 'bg-gold-50/50' => $term->is_current])>
+                            @php $isCurrent = $currentTerm?->is($term); @endphp
+                            <li @class(['flex flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center', 'bg-gold-50/50' => $isCurrent])>
                                 <div class="flex min-w-0 flex-1 items-center gap-4">
                                     <span @class([
                                         'flex size-11 shrink-0 items-center justify-center rounded-xl font-serif text-lg font-semibold',
-                                        'bg-gold-gradient text-ink-900 shadow-gold' => $term->is_current,
-                                        'bg-ivory-200 text-slate-500 ring-1 ring-ivory-300' => ! $term->is_current,
+                                        'bg-gold-gradient text-ink-900 shadow-gold' => $isCurrent,
+                                        'bg-ivory-200 text-slate-500 ring-1 ring-ivory-300' => ! $isCurrent,
                                     ])>{{ $term->term_number }}</span>
                                     <div class="min-w-0">
                                         <p class="font-medium text-ink-900">
                                             {{ $term->name }}
-                                            @if ($term->is_current)
+                                            @if ($isCurrent)
                                                 <span class="badge-gold ml-2">Current</span>
+                                                <span class="ml-1 text-xs text-slate-500">{{ $term->isRunningToday() ? '· by the calendar' : '· set by hand' }}</span>
                                             @endif
                                         </p>
                                         <p class="text-sm text-slate-500">
+                                            @if ($term->starts_on && $term->ends_on)
+                                                {{ $term->starts_on->format('d M Y') }} – {{ $term->ends_on->format('d M Y') }} ·
+                                            @else
+                                                <span class="text-amber-700">No dates yet</span> ·
+                                            @endif
                                             {{ $term->subjects_count }} subjects · {{ $term->lessons_count }} lessons · {{ $term->quizzes_count }} quizzes
                                         </p>
                                     </div>
                                 </div>
 
                                 <div class="flex items-center gap-1 sm:justify-end">
-                                    @unless ($term->is_current)
+                                    @unless ($isCurrent)
                                         <form method="POST" action="{{ route('admin.terms.current', $term) }}">
                                             @csrf
                                             @method('PATCH')
@@ -54,8 +61,8 @@
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="icon-btn-danger" aria-label="Delete {{ $term->name }}"
-                                                title="{{ $term->is_current ? 'The current term cannot be deleted' : ($inUse ? 'In use by subjects, lessons or quizzes' : 'Delete') }}"
-                                                @disabled($term->is_current || $inUse)>
+                                                title="{{ $isCurrent ? 'The current term cannot be deleted' : ($inUse ? 'In use by subjects, lessons or quizzes' : 'Delete') }}"
+                                                @disabled($isCurrent || $inUse)>
                                             <x-icon name="trash" class="size-5" />
                                         </button>
                                     </form>
@@ -124,6 +131,17 @@
                                value="{{ $errors->term->any() ? old('term_number') : '' }}">
                     </x-field>
                 </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <x-field label="Starts on" name="starts_on" for="term_starts_on" bag="term">
+                        <input id="term_starts_on" name="starts_on" type="date" class="input"
+                               value="{{ $errors->term->any() ? old('starts_on') : '' }}">
+                    </x-field>
+                    <x-field label="Ends on" name="ends_on" for="term_ends_on" bag="term">
+                        <input id="term_ends_on" name="ends_on" type="date" class="input"
+                               value="{{ $errors->term->any() ? old('ends_on') : '' }}">
+                    </x-field>
+                </div>
+                <p class="text-xs text-slate-500">With dates, EduVers switches to this term on its own. Leave them empty to use “Set as current”.</p>
                 <button type="submit" class="btn-ghost w-full"><x-icon name="plus" class="size-4" /> Add term</button>
             </form>
         </div>

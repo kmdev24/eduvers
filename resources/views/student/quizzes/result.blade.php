@@ -68,7 +68,8 @@
             </div>
         @else
             <div class="card mt-8 p-6 text-center text-sm text-slate-500">
-                Your teacher has chosen not to show the correct answers for this quiz.
+                The correct answers are not shown while others are still taking this quiz.
+                Your teacher can go through them with the class afterwards.
             </div>
         @endif
 

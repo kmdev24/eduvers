@@ -45,14 +45,11 @@ class SubjectTeacherController extends Controller
             foreach ($sectionIds as $sectionId) {
                 $teacherId = $request->input("teachers.{$sectionId}");
 
-                if (blank($teacherId)) {
-                    $subject->assignments()->where('section_id', $sectionId)->delete();
-                    continue;
-                }
-
+                // Empty the slot rather than delete the class, which would take the
+                // subject away from every student in the section
                 SubjectTeacher::updateOrCreate(
                     ['subject_id' => $subject->id, 'section_id' => $sectionId],
-                    ['teacher_id' => (int) $teacherId],
+                    ['teacher_id' => blank($teacherId) ? null : (int) $teacherId],
                 );
             }
         });

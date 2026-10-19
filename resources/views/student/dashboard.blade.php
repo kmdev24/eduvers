@@ -50,7 +50,7 @@
                         </span>
                         <div class="min-w-0 flex-1">
                             <p class="font-medium text-ink-900">{{ $offering->subject->name }}</p>
-                            <p class="text-sm text-slate-500">{{ $offering->subject->code }} · {{ $offering->teacher->name }}</p>
+                            <p class="text-sm text-slate-500">{{ $offering->subject->code }} · {{ $offering->teacher?->name ?? 'No teacher yet' }}</p>
                         </div>
                     </li>
                 @empty

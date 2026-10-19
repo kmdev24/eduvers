@@ -1,6 +1,6 @@
 <x-layouts.app title="Assign Teachers">
     <x-page-header eyebrow="Teacher assignment" :title="$subject->name"
-                   description="Choose the teacher for each section that takes this subject. Leave a section unassigned to remove its teacher.">
+                   description="Choose the teacher for each section that takes this subject. Every section below already has the subject; leaving one unassigned only empties its teacher slot.">
         <x-slot:actions>
             <a href="{{ route('admin.subjects.edit', $subject) }}" class="btn-ghost"><x-icon name="pencil" class="size-4" /> Edit subject</a>
             <a href="{{ route('admin.subjects.index') }}" class="btn-ghost">Back to subjects</a>
@@ -56,7 +56,25 @@
             </div>
         @else
             @php $teacherGroups = $teachers->groupBy(fn ($t) => $t->teacher_type?->label() ?? 'Type not set'); @endphp
-            <ul class="divide-y divide-ivory-200">
+
+            @if ($sections->count() > 1 && $teachers->isNotEmpty())
+                <div data-apply-to-all="#section-teachers" class="flex flex-col gap-3 border-b border-ivory-300 bg-ivory-50/60 px-6 py-4 sm:flex-row sm:items-center">
+                    <label for="teacher_all" class="text-sm text-slate-500">One teacher for every section:</label>
+                    <select id="teacher_all" data-apply-to-all-value class="input sm:w-72">
+                        <option value="">— Unassigned —</option>
+                        @foreach ($teacherGroups as $type => $group)
+                            <optgroup label="{{ $type }}">
+                                @foreach ($group as $teacher)
+                                    <option value="{{ $teacher->id }}">{{ $teacher->name }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
+                    </select>
+                    <button type="button" data-apply-to-all-button class="btn-ghost">Apply to all {{ $sections->count() }} sections</button>
+                </div>
+            @endif
+
+            <ul id="section-teachers" class="divide-y divide-ivory-200">
                 @foreach ($sections as $section)
                     @php $current = old("teachers.{$section->id}", $assigned[$section->id] ?? ''); @endphp
                     <li class="grid items-center gap-4 px-6 py-4 md:grid-cols-[1fr_20rem]">

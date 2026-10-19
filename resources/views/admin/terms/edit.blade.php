@@ -21,6 +21,15 @@
                     <input id="term_number" name="term_number" type="number" min="1" max="4" value="{{ old('term_number', $term->term_number) }}" required class="input">
                 </x-field>
             </div>
+
+            <div class="grid gap-5 sm:grid-cols-2">
+                <x-field label="Starts on" name="starts_on" hint="EduVers switches to this term on its own between these dates.">
+                    <input id="starts_on" name="starts_on" type="date" value="{{ old('starts_on', $term->starts_on?->toDateString()) }}" class="input">
+                </x-field>
+                <x-field label="Ends on" name="ends_on">
+                    <input id="ends_on" name="ends_on" type="date" value="{{ old('ends_on', $term->ends_on?->toDateString()) }}" class="input">
+                </x-field>
+            </div>
         </div>
 
         <div class="card-gold h-fit p-6">

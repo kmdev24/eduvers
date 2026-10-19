@@ -46,7 +46,7 @@
             <div class="flex items-center justify-between border-b border-ivory-300 px-6 py-5">
                 <div>
                     <h2 class="font-serif text-lg font-semibold">Sections &amp; capacity</h2>
-                    <p class="text-sm text-slate-500">Enrolment against each section's limit</p>
+                    <p class="text-sm text-slate-500">Enrollment against each section's limit</p>
                 </div>
                 <a href="{{ route('admin.sections.index') }}" class="text-sm font-medium text-gold-700 hover:text-gold-900">Manage sections →</a>
             </div>

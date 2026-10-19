@@ -1,6 +1,6 @@
 <x-layouts.app title="Add students">
     <x-page-header eyebrow="Teaching" title="Add students to a class"
-                   description="Add a student from another section to one of your classes. The student can open the class once an admin approves the request." />
+                   description="Every student in the school is listed. Students already in the class, or who cannot join it, show the reason instead of an Add button. The student can open the class once an admin approves the request." />
 
     @if ($classes->isEmpty())
         <div class="card mt-8">
@@ -8,7 +8,9 @@
         </div>
     @else
         <div class="card mt-8">
-            <form method="GET" action="{{ route('teacher.enrollments.index') }}" class="flex flex-col gap-3 border-b border-ivory-300 p-5 md:flex-row md:items-center">
+            <form method="GET" action="{{ route('teacher.enrollments.index') }}"
+                  data-live-form data-live-target="#class-roster" data-live-url="{{ route('teacher.enrollments.index', ['roster' => 1]) }}"
+                  class="flex flex-col gap-3 border-b border-ivory-300 p-5 md:flex-row md:items-center">
                 <select name="class" class="input md:w-80" aria-label="Class">
                     @foreach ($classes as $class)
                         <option value="{{ $class->id }}" @selected($selected?->id === $class->id)>{{ $class->subject->code }} · {{ $class->subject->name }} ({{ $class->section->name }})</option>
@@ -21,30 +23,9 @@
                 <button type="submit" class="btn-dark">Search</button>
             </form>
 
-            @if ($search === '')
-                <x-empty-state icon="search" title="Find a student" message="Choose the class, then search for the student by name or email." />
-            @elseif ($students->isEmpty())
-                <x-empty-state icon="users" title="No students found" message="No student outside {{ $selected->section->name }} matches, or they already have a request for this class." />
-            @else
-                <ul class="divide-y divide-ivory-200">
-                    @foreach ($students as $student)
-                        <li class="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div class="min-w-0">
-                                <p class="font-medium text-ink-900">{{ $student->name }}</p>
-                                <p class="text-xs break-all text-slate-500">{{ $student->email }} · {{ $student->section?->name ?? 'No section' }}</p>
-                            </div>
-                            <form method="POST" action="{{ route('teacher.enrollments.store') }}" class="shrink-0">
-                                @csrf
-                                <input type="hidden" name="class_id" value="{{ $selected->id }}">
-                                <input type="hidden" name="student_id" value="{{ $student->id }}">
-                                <button type="submit" class="btn-outline-gold px-4 py-2">
-                                    <x-icon name="user-plus" class="size-4" /> Add to {{ $selected->subject->code }}
-                                </button>
-                            </form>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
+            <div id="class-roster">
+                @include('partials.class-roster')
+            </div>
         </div>
 
         @if ($requests->isNotEmpty())

@@ -1,11 +1,11 @@
 <x-layouts.app title="My Subjects">
-    <x-page-header eyebrow="Learning" title="My subjects"
+    <x-page-header eyebrow="Learning" :title="'My subjects'.($term ? ' · '.$term->name : '')"
                    :description="$student->section ? $student->section->name.' · '.$student->section->gradeLevel->name.' · '.$student->section->trackStrand->name : 'You are not enrolled in a section yet.'" />
 
     @if ($classes->isEmpty())
         <div class="card mt-8">
-            <x-empty-state icon="stack" title="No subjects yet"
-                           :message="$student->section ? 'Your section\'s subjects will appear once teachers are assigned.' : 'Please contact the Registrar\'s Office to be enrolled in a section.'" />
+            <x-empty-state icon="stack" :title="$term ? 'No subjects this term' : 'No subjects yet'"
+                           :message="$student->section ? 'Subjects for your section appear here as soon as they are added to '.($term?->name ?? 'the term').'.' : 'Please contact the Registrar\'s Office to be enrolled in a section.'" />
         </div>
     @else
         <div class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -15,7 +15,7 @@
                     <div class="absolute inset-x-0 top-0 h-1 bg-gold-gradient opacity-60 transition group-hover:opacity-100"></div>
                     <p class="text-xs font-semibold uppercase tracking-luxe text-champagne-dark">{{ $offering->subject->code }}</p>
                     <h2 class="mt-2 font-serif text-xl font-semibold leading-snug text-ink-900 group-hover:text-gold-800">{{ $offering->subject->name }}</h2>
-                    <p class="mt-1 text-sm text-slate-500">{{ $offering->teacher->name }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ $offering->teacher?->name ?? 'No teacher yet' }}</p>
                     @if ((int) $offering->section_id !== (int) $student->section_id)
                         <p class="mt-2"><span class="badge-gold">Joined class · {{ $offering->section->name }}</span></p>
                     @endif

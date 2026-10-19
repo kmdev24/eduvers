@@ -36,7 +36,7 @@
                                     <p class="text-xs text-slate-500">{{ $class->subject->gradeLevel?->name }}{{ $class->subject->isCore() ? ' · Core subject' : '' }}</p>
                                 </td>
                                 <td class="px-6 py-4 text-slate-600">{{ $class->section->name }}</td>
-                                <td class="px-6 py-4 text-slate-600">{{ $class->teacher->name }}</td>
+                                <td class="px-6 py-4 text-slate-600">{{ $class->teacher?->name ?? 'No teacher yet' }}</td>
                                 <td class="px-6 py-4 text-right">
                                     @if ($existing && $existing->status !== EnrollmentStatus::Rejected)
                                         <x-enrollment-status :status="$existing->status" />
@@ -69,7 +69,7 @@
                     <li class="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                         <div class="min-w-0">
                             <p class="font-medium text-ink-900">{{ $request->offering->subject->code }} · {{ $request->offering->subject->name }}</p>
-                            <p class="text-xs text-slate-500">{{ $request->offering->section->name }} · {{ $request->offering->teacher->name }} · sent {{ $request->created_at->diffForHumans() }}</p>
+                            <p class="text-xs text-slate-500">{{ $request->offering->section->name }} · {{ $request->offering->teacher?->name ?? 'No teacher yet' }} · sent {{ $request->created_at->diffForHumans() }}</p>
                         </div>
                         <div class="flex shrink-0 items-center gap-3">
                             <x-enrollment-status :status="$request->status" />

@@ -5,9 +5,10 @@
     $editing = $user->exists;
     $role    = old('role', $user->role?->value ?? UserRole::Student->value);
     $roleCards = [
-        UserRole::Student->value   => ['icon' => 'book-open',    'desc' => 'Takes lessons and quizzes'],
-        UserRole::Teacher->value   => ['icon' => 'academic-cap', 'desc' => 'Teaches classes and posts content'],
-        UserRole::Admin->value => ['icon' => 'shield',       'desc' => 'Full administrator access'],
+        UserRole::Student->value    => ['icon' => 'book-open',    'desc' => 'Takes lessons and quizzes'],
+        UserRole::Teacher->value    => ['icon' => 'academic-cap', 'desc' => 'Teaches classes and posts content'],
+        UserRole::Admin->value      => ['icon' => 'shield',       'desc' => 'Full administrator access'],
+        UserRole::Developer->value  => ['icon' => 'code-bracket', 'desc' => 'Like admin, plus API and email settings'],
     ];
 @endphp
 
@@ -73,10 +74,42 @@
                 </x-field>
             </div>
 
-            {{-- Student only --}}
-            <div data-show-for-role="student">
-                <x-field label="Section" name="section_id" hint="Full sections are disabled. You can leave this empty and enroll the student later.">
-                    <select id="section_id" name="section_id" class="input">
+            {{-- Student only: year level and strand narrow the section list below them --}}
+            @php
+                $chosenSection = $sections->firstWhere('id', (int) old('section_id', $user->section_id));
+                $chosenLevel   = (int) old('grade_level_id', $user->grade_level_id ?? $chosenSection?->grade_level_id);
+                $chosenStrand  = (int) old('track_strand_id', $user->track_strand_id ?? $chosenSection?->track_strand_id);
+            @endphp
+            <div data-show-for-role="student" class="space-y-5">
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <x-field label="Year level" name="grade_level_id" hint="Senior High: Grade 11–12. College: 1st–4th Year. Saved on the student, so it holds even before they have a section.">
+                        <select id="grade_level_id" name="grade_level_id" class="input" data-level-select="track_strand_id">
+                            <option value="">Not set</option>
+                            @foreach ($levels as $level)
+                                <option value="{{ $level->id }}" data-level-type="{{ $level->level_type->value }}"
+                                        @selected($chosenLevel === $level->id)>
+                                    {{ $level->name }} · {{ $level->level_type->label() }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </x-field>
+
+                    <x-field label="Strand / course" name="track_strand_id">
+                        <select id="track_strand_id" name="track_strand_id" class="input">
+                            <option value="">Not set</option>
+                            @foreach ($strands as $strand)
+                                <option value="{{ $strand->id }}" data-category="{{ $strand->category->value }}"
+                                        @selected($chosenStrand === $strand->id)>
+                                    {{ $strand->name }} · {{ $strand->category->label() }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </x-field>
+                </div>
+
+                <x-field label="Section" name="section_id" hint="Only sections of the chosen year level and strand are listed. Full sections are disabled, and you can leave this empty and enroll the student later.">
+                    <select id="section_id" name="section_id" class="input"
+                            data-depends="grade_level_id=gradeLevelId,track_strand_id=strandId">
                         <option value="">Not enrolled yet</option>
                         @foreach ($sections->groupBy(fn ($s) => $s->gradeLevel->name) as $levelName => $group)
                             <optgroup label="{{ $levelName }}">
@@ -86,6 +119,8 @@
                                         $isFull    = $section->students_count >= $section->capacity;
                                     @endphp
                                     <option value="{{ $section->id }}"
+                                            data-grade-level-id="{{ $section->grade_level_id }}"
+                                            data-strand-id="{{ $section->track_strand_id }}"
                                             @selected((string) old('section_id', $user->section_id) === (string) $section->id)
                                             @disabled($isFull && ! $isCurrent)>
                                         {{ $section->name }} · {{ $section->trackStrand->name }} ({{ $section->students_count }}/{{ $section->capacity }}){{ $isFull && ! $isCurrent ? ' · Full' : '' }}
@@ -95,8 +130,9 @@
                         @endforeach
                     </select>
                 </x-field>
+
                 @if ($sections->isEmpty())
-                    <p class="mt-2 text-sm text-amber-700">No sections exist yet. <a href="{{ route('admin.sections.create') }}" class="font-medium underline">Create one</a> first.</p>
+                    <p class="text-sm text-amber-700">No sections exist yet. <a href="{{ route('admin.sections.create') }}" class="font-medium underline">Create one</a> first.</p>
                 @endif
             </div>
         </div>

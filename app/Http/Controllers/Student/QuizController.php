@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicTerm;
 use App\Models\Quiz;
 use App\Models\QuizQuestion;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -19,6 +20,7 @@ class QuizController extends Controller
         $student = $request->user();
 
         $quizzes = Quiz::published()->visibleTo($student)
+            ->when(AcademicTerm::getCurrent()?->id, fn ($q, $termId) => $q->where('academic_term_id', $termId))
             ->with('subject')->withCount('questions')
             ->latest('published_at')->get();
 

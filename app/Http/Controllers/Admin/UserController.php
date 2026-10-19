@@ -6,7 +6,9 @@ use App\Enums\TeacherType;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserRequest;
+use App\Models\GradeLevel;
 use App\Models\Section;
+use App\Models\TrackStrand;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +24,8 @@ class UserController extends Controller
 
         $users = User::query()
             ->with(['section.gradeLevel'])
+            // Admin cannot see developer accounts at all — they're hidden
+            ->when($request->user()->isAdmin(), fn ($q) => $q->where('role', '!=', UserRole::Developer->value))
             ->when($role, fn ($q) => $q->where('role', $role))
             ->when($type, fn ($q) => $q->where('teacher_type', $type))
             ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q
@@ -33,6 +37,8 @@ class UserController extends Controller
 
         // ['admin' => 1, 'teacher' => 4, 'student' => 120]
         $roleCounts = User::query()->toBase()
+            // Don't show developer count to admins
+            ->when($request->user()->isAdmin(), fn ($q) => $q->where('role', '!=', UserRole::Developer->value))
             ->selectRaw('role, COUNT(*) as total')
             ->groupBy('role')
             ->pluck('total', 'role');
@@ -49,6 +55,8 @@ class UserController extends Controller
         return view('admin.users.form', [
             'user'     => new User(),
             'sections' => $this->sectionOptions(),
+            'levels'   => $this->levelOptions(),
+            'strands'  => TrackStrand::orderBy('name')->get(),
         ]);
     }
 
@@ -60,25 +68,38 @@ class UserController extends Controller
             ->with('status', "{$user->name} was added as {$user->role->label()}.");
     }
 
-    public function edit(User $user): View
+    public function edit(Request $request, User $user): View
     {
+        // Admin cannot edit a developer
+        if ($request->user()->isAdmin() && $user->isDeveloper()) {
+            abort(403, 'You cannot edit a developer account.');
+        }
+
         return view('admin.users.form', [
             'user'     => $user,
             'sections' => $this->sectionOptions(),
+            'levels'   => $this->levelOptions(),
+            'strands'  => TrackStrand::orderBy('name')->get(),
         ]);
     }
 
     public function update(UserRequest $request, User $user): RedirectResponse
     {
+        // Admin cannot update a developer
+        if ($request->user()->isAdmin() && $user->isDeveloper()) {
+            abort(403, 'You cannot edit a developer account.');
+        }
+
         $user->fill($request->payload())->save();
 
-        // A user who is no longer a teacher should not keep a teaching load
+        // A user who is no longer a teacher should not keep a teaching load. The classes
+        // stay (their students are enrolled in them); they just lose their teacher.
         if (! $user->isTeacher()) {
-            $user->teachingAssignments()->delete();
+            $user->teachingAssignments()->update(['teacher_id' => null]);
         }
 
         // A student moved into a section no longer needs a request to join that section's classes
-        $user->classEnrollments()->whereHas('offering', fn ($q) => $q->where('section_id', $user->section_id))->delete();
+        $user->dropRedundantClassEnrollments();
 
         return redirect()->route('admin.users.index')
             ->with('status', "{$user->name}'s account was updated.");
@@ -88,6 +109,11 @@ class UserController extends Controller
     {
         if ($user->is($request->user())) {
             return back()->with('error', "You can't delete your own account.");
+        }
+
+        // Admin cannot delete a developer
+        if ($request->user()->isAdmin() && $user->isDeveloper()) {
+            return back()->with('error', 'You cannot delete a developer account.');
         }
 
         if ($user->isAdmin() && User::admins()->count() <= 1) {
@@ -100,7 +126,13 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')->with('status', "{$name} was deleted.");
     }
 
-    /** Sections for the student dropdown, with enrolment counts. */
+    /** Year levels for the student dropdown, Senior High first. */
+    private function levelOptions()
+    {
+        return GradeLevel::orderBy('level_type')->orderBy('id')->get();
+    }
+
+    /** Sections for the student dropdown, with enrollment counts. */
     private function sectionOptions()
     {
         return Section::with(['gradeLevel', 'trackStrand'])

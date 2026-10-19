@@ -12,6 +12,18 @@ class Subject extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::created(fn (Subject $subject) => $subject->syncClasses());
+
+        // Moved to another year level or strand: it now reaches different sections
+        static::updated(function (Subject $subject) {
+            if ($subject->wasChanged(['grade_level_id', 'track_strand_id'])) {
+                $subject->syncClasses();
+            }
+        });
+    }
+
     protected $fillable = [
         'code',
         'name',
@@ -68,6 +80,25 @@ class Subject extends Model
     public function isCore(): bool
     {
         return $this->track_strand_id === null;
+    }
+
+    /**
+     * A subject is a class in every section that may take it, from the moment it exists —
+     * the teacher is filled in later. Adds the missing classes, never touches existing ones.
+     */
+    public function syncClasses(): void
+    {
+        $missing = $this->eligibleSections()
+            ->whereNotIn('id', $this->assignments()->select('section_id'))
+            ->pluck('id');
+
+        SubjectTeacher::insert($missing->map(fn (int $sectionId) => [
+            'subject_id' => $this->id,
+            'section_id' => $sectionId,
+            'teacher_id' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ])->all());
     }
 
     /** Assign (or reassign) a teacher to this subject for a section. */

@@ -42,7 +42,7 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <p class="font-medium text-ink-900">{{ $enrollment->offering->subject->code }} · {{ $enrollment->offering->subject->name }}</p>
-                                    <p class="text-xs text-slate-500">{{ $enrollment->offering->section->name }} · {{ $enrollment->offering->teacher->name }}</p>
+                                    <p class="text-xs text-slate-500">{{ $enrollment->offering->section->name }} · {{ $enrollment->offering->teacher?->name ?? 'No teacher yet' }}</p>
                                 </td>
                                 <td class="px-6 py-4">
                                     <p class="text-slate-700">{{ $enrollment->requester?->name ?? 'Deleted user' }}</p>

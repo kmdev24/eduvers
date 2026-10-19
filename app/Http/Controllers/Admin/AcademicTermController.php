@@ -94,8 +94,8 @@ class AcademicTermController extends Controller
 
     public function destroy(AcademicTerm $term): RedirectResponse
     {
-        if ($term->is_current) {
-            return back()->with('error', 'You cannot delete the current term. Set another term as current first.');
+        if (AcademicTerm::getCurrent()?->is($term)) {
+            return back()->with('error', 'You cannot delete the term the school is in. Set another term as current first.');
         }
 
         if ($term->subjects()->exists() || $term->lessons()->exists() || $term->quizzes()->exists()) {
@@ -115,6 +115,8 @@ class AcademicTermController extends Controller
         return [
             'name'          => ['required', 'string', 'max:50'],
             'academic_year' => ['required', 'string', $this->yearRule()],
+            'starts_on'     => ['nullable', 'date'],
+            'ends_on'       => ['nullable', 'date', 'after_or_equal:starts_on', 'required_with:starts_on'],
             'term_number'   => [
                 'required', 'integer', 'min:1', 'max:4',
                 Rule::unique('academic_terms', 'term_number')

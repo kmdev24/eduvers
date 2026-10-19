@@ -62,13 +62,19 @@ if not exist "%SRC%\public\build\manifest.json" goto err_nobuild
 
 rem ---------------------------------------------------------------- 2
 echo.
-echo [2/6] Copying the application (without secrets, logs or caches)...
+echo [2/6] Copying only the files needed to run the website...
 mkdir "%OUT%" 2>nul
 if not exist "%OUT%" goto err_nofolder
 
-robocopy "%SRC%" "%OUT%\eduvers" /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP ^
- /XD "%SRC%\node_modules" "%SRC%\.git" "%SRC%\.claude" "%SRC%\graphify-out" "%SRC%\storage\logs" "%SRC%\storage\framework\sessions" "%SRC%\storage\framework\views" "%SRC%\storage\framework\cache" "%SRC%\storage\framework\testing" ^
- /XF "%SRC%\.env" "%SRC%\eduvers.sql" "%SRC%\eduvers.zip" "%SRC%\.phpunit.result.cache" "%SRC%\public\hot" "%SRC%\bootstrap\cache\config.php" "%SRC%\bootstrap\cache\routes-v7.php" "%SRC%\bootstrap\cache\events.php" "%SRC%\storage\app\eduvers-setup-saved.txt" .env.backup .env.tmp .env.production .env.local
+rem Only what the website, the installer and "Edit EduVers" need. Tests, Docker and
+rem cloud deploy files, git, editor and local notes folders stay on this PC.
+for %%D in (app bootstrap config database handover public resources routes storage vendor) do (
+  robocopy "%SRC%\%%D" "%OUT%\eduvers\%%D" /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP ^
+   /XD "%SRC%\storage\logs" "%SRC%\storage\framework\sessions" "%SRC%\storage\framework\views" "%SRC%\storage\framework\cache" "%SRC%\storage\framework\testing" ^
+   /XF "%SRC%\public\hot" "%SRC%\bootstrap\cache\config.php" "%SRC%\bootstrap\cache\routes-v7.php" "%SRC%\bootstrap\cache\events.php" "%SRC%\storage\app\eduvers-setup-saved.txt" "%SRC%\handover\Make-Handover-Package.bat"
+  if errorlevel 8 goto err_copy
+)
+robocopy "%SRC%" "%OUT%\eduvers" artisan composer.json composer.lock package.json package-lock.json vite.config.js tailwind.config.js .env.example .htaccess .npmrc README.md /R:1 /W:1 /NFL /NDL /NJH /NJS /NP
 if errorlevel 8 goto err_copy
 if exist "%OUT%\eduvers\.env" goto err_envleak
 echo       Done.

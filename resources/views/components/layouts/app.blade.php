@@ -1,4 +1,6 @@
-@props(['title' => 'Dashboard'])
+{{-- assistant: pass false on pages where the help button must not appear, such as
+     a quiz being taken. --}}
+@props(['title' => 'Dashboard', 'assistant' => true])
 
 @use('App\Enums\UserRole')
 @use('App\Models\AcademicTerm')
@@ -8,18 +10,29 @@
     $currentTerm = AcademicTerm::getCurrent();
 
     // Sidebar menu per role. 'route' => null shows the item as "Soon".
+    $adminNav = [
+        ['label' => 'Dashboard',        'icon' => 'home',         'route' => 'admin.dashboard'],
+        ['label' => 'Users',            'icon' => 'users',        'route' => 'admin.users.index',    'match' => 'admin.users.*'],
+        ['label' => 'Sections',         'icon' => 'building',     'route' => 'admin.sections.index', 'match' => 'admin.sections.*'],
+        ['label' => 'Subjects',         'icon' => 'stack',        'route' => 'admin.subjects.index', 'match' => 'admin.subjects.*'],
+        ['label' => 'Enroll students',   'icon' => 'user-plus',    'route' => 'admin.student-enrollment.index', 'match' => 'admin.student-enrollment.*'],
+        ['label' => 'Add to a class',    'icon' => 'stack',        'route' => 'admin.class-students.index', 'match' => 'admin.class-students.*'],
+        ['label' => 'Enrollment requests', 'icon' => 'check-circle', 'route' => 'admin.enrollments.index', 'match' => 'admin.enrollments.*'],
+        ['label' => 'Academic Terms',   'icon' => 'calendar',     'route' => 'admin.terms.index',    'match' => 'admin.terms.*'],
+        ['label' => 'Year Levels',      'icon' => 'queue-list',   'route' => 'admin.levels.index',   'match' => 'admin.levels.*'],
+        ['label' => 'Tracks & Strands', 'icon' => 'academic-cap', 'route' => 'admin.tracks.index',   'match' => 'admin.tracks.*'],
+        ['label' => 'Announcements',    'icon' => 'megaphone',    'route' => 'announcements.index',      'match' => 'announcements.*'],
+    ];
+
+    $developerNav = [
+        ...$adminNav,
+        ['label' => 'System check',     'icon' => 'shield',       'route' => 'admin.system',         'match' => 'admin.system*'],
+        ['label' => 'API & Email Settings', 'icon' => 'cog', 'route' => 'admin.settings', 'match' => 'admin.settings*'],
+    ];
+
     $nav = match ($user->role) {
-        UserRole::Admin => [
-            ['label' => 'Dashboard',        'icon' => 'home',         'route' => 'admin.dashboard'],
-            ['label' => 'Users',            'icon' => 'users',        'route' => 'admin.users.index',    'match' => 'admin.users.*'],
-            ['label' => 'Sections',         'icon' => 'building',     'route' => 'admin.sections.index', 'match' => 'admin.sections.*'],
-            ['label' => 'Subjects',         'icon' => 'stack',        'route' => 'admin.subjects.index', 'match' => 'admin.subjects.*'],
-            ['label' => 'Enrollment requests', 'icon' => 'user-plus', 'route' => 'admin.enrollments.index', 'match' => 'admin.enrollments.*'],
-            ['label' => 'Academic Terms',   'icon' => 'calendar',     'route' => 'admin.terms.index',    'match' => 'admin.terms.*'],
-            ['label' => 'Tracks & Strands', 'icon' => 'academic-cap', 'route' => 'admin.tracks.index',   'match' => 'admin.tracks.*'],
-            ['label' => 'Announcements',    'icon' => 'megaphone',    'route' => 'announcements.index',      'match' => 'announcements.*'],
-            ['label' => 'System check',     'icon' => 'shield',       'route' => 'admin.system',         'match' => 'admin.system*'],
-        ],
+        UserRole::Admin => $adminNav,
+        UserRole::Developer => $developerNav,
         UserRole::Teacher => [
             ['label' => 'Dashboard', 'icon' => 'home',      'route' => 'teacher.dashboard'],
             ['label' => 'Lessons',   'icon' => 'book-open', 'route' => 'teacher.lessons.index', 'match' => 'teacher.lessons.*'],
@@ -164,6 +177,10 @@
         </footer>
     </main>
 </div>
+
+@if ($user->isStudent() && $assistant)
+    <x-student-assistant />
+@endif
 
 </body>
 </html>

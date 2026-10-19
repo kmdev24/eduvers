@@ -80,6 +80,45 @@ document.querySelectorAll('[data-level-select]').forEach((level) => {
     sync();
 });
 
+// Keep a dropdown in step with the ones it depends on, without a page reload:
+//   <select data-depends="level_type=levelType,strand=strandId">
+//     <option data-level-type="shs" data-strand-id="5">…</option>
+// Each pair is "id of the source select" = "the option's data key". An empty source
+// means "no filter on that key"; options missing the key are always offered.
+document.querySelectorAll('[data-depends]').forEach((target) => {
+    const pairs = target.dataset.depends.split(',').map((pair) => {
+        const [id, key] = pair.split('=').map((s) => s.trim());
+        return { source: document.getElementById(id), key };
+    }).filter((p) => p.source);
+
+    if (!pairs.length) return;
+
+    const sync = () => {
+        [...target.options].forEach((option) => {
+            // Remember a disabled set by the server (e.g. a full section) so filtering never undoes it
+            if (option.dataset.lockedOut === undefined) option.dataset.lockedOut = option.disabled ? '1' : '';
+
+            const ok = pairs.every(({ source, key }) =>
+                !source.value || option.dataset[key] === undefined || option.dataset[key] === source.value);
+            option.hidden = !ok;
+            option.disabled = !ok || option.dataset.lockedOut === '1';
+        });
+
+        // An option that no longer fits must not stay selected
+        if (target.selectedOptions[0]?.hidden) {
+            target.value = [...target.options].find((o) => !o.hidden && !o.disabled)?.value ?? '';
+        }
+
+        // Don't leave a group heading behind with nothing under it
+        target.querySelectorAll('optgroup').forEach((group) => {
+            group.hidden = ![...group.children].some((o) => !o.hidden);
+        });
+    };
+
+    pairs.forEach(({ source }) => source.addEventListener('change', sync));
+    sync();
+});
+
 // Announcement form: show the section picker only for "Section" audience
 document.querySelectorAll('[data-audience-select]').forEach((select) => {
     const box = select.closest('form')?.querySelector('[data-audience-section]');
@@ -356,4 +395,234 @@ document.querySelectorAll('[data-password-toggle]').forEach((button) => {
         button.querySelector('[data-password-hide]')?.classList.toggle('hidden', !show);
         input.focus();
     });
+});
+
+// "Apply to all": copy one <select>'s value into every select in the target list.
+// Nothing is saved until the form's own Save button is pressed.
+document.querySelectorAll('[data-apply-to-all]').forEach((panel) => {
+    const source = panel.querySelector('[data-apply-to-all-value]');
+    const button = panel.querySelector('[data-apply-to-all-button]');
+    const targets = document.querySelectorAll(`${panel.dataset.applyToAll} select`);
+    if (!source || !button || !targets.length) return;
+
+    button.addEventListener('click', () => {
+        targets.forEach((select) => {
+            select.value = source.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    });
+});
+
+// "Select all" for a list of checkboxes: <ul data-check-all-group> + <input data-check-all>
+document.querySelectorAll('[data-check-all-group]').forEach((group) => {
+    const master = group.querySelector('[data-check-all]');
+    const boxes = [...group.querySelectorAll('input[type=checkbox]')].filter((b) => b !== master);
+    if (!master || !boxes.length) return;
+
+    const sync = () => {
+        const usable = boxes.filter((b) => !b.disabled);
+        const checked = usable.filter((b) => b.checked).length;
+        master.checked = usable.length > 0 && checked === usable.length;
+        master.indeterminate = checked > 0 && checked < usable.length;
+    };
+
+    master.addEventListener('change', () => {
+        boxes.filter((b) => !b.disabled).forEach((b) => (b.checked = master.checked));
+        master.indeterminate = false;
+    });
+    boxes.forEach((b) => b.addEventListener('change', sync));
+    group.addEventListener('rows-changed', sync);
+});
+
+// Don't let a student be moved into another year level or course by accident:
+//   <ul data-level-guard="section_id"> with <li data-grade-level-id="3" data-strand-id="5">
+// A row that doesn't match the chosen section on both is shown as not enrollable.
+// A row with a value missing (not admitted into one yet) never clashes on it.
+document.querySelectorAll('[data-level-guard]').forEach((list) => {
+    const section = document.getElementById(list.dataset.levelGuard);
+    if (!section) return;
+
+    const sync = () => {
+        const target = section.selectedOptions[0]?.dataset ?? {};
+
+        list.querySelectorAll('li[data-grade-level-id]').forEach((row) => {
+            const clashes = (own, want) => own !== '' && want !== undefined && want !== '' && own !== want;
+            const wrongLevel = clashes(row.dataset.gradeLevelId, target.gradeLevelId);
+            const wrongCourse = clashes(row.dataset.strandId, target.strandId);
+            const clash = wrongLevel || wrongCourse;
+
+            const box = row.querySelector('input[type=checkbox]');
+            if (box) {
+                box.disabled = clash;
+                if (clash) box.checked = false;
+            }
+
+            const badge = row.querySelector('[data-level-warning]');
+            if (badge) {
+                badge.hidden = !clash;
+                badge.textContent = wrongLevel && wrongCourse ? 'Another year level and course'
+                    : wrongLevel ? 'Another year level'
+                    : 'Another strand or course';
+            }
+            row.classList.toggle('opacity-50', clash);
+        });
+
+        list.dispatchEvent(new Event('rows-changed'));
+    };
+
+    section.addEventListener('change', sync);
+    sync();
+});
+
+// Live list: refresh a list as the user types or changes a filter, with no page reload.
+//   <form data-live-form data-live-target="#list" data-live-url="/path?partial=1">
+// The server returns just the list's HTML. Falls back to a normal form submit without JS.
+document.querySelectorAll('[data-live-form]').forEach((form) => {
+    const target = document.querySelector(form.dataset.liveTarget);
+    const url = form.dataset.liveUrl;
+    if (!target || !url) return;
+
+    let timer;
+    let newest = 0; // a slow answer must never overwrite a newer one
+
+    const load = async (extra = '') => {
+        const params = new URLSearchParams(new FormData(form));
+        const mine = ++newest;
+        target.setAttribute('aria-busy', 'true');
+
+        try {
+            const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}${params}${extra}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+            if (res.ok && mine === newest) {
+                target.innerHTML = await res.text();
+                // Keep the address bar in step, so a refresh shows the same list
+                history.replaceState(null, '', `${location.pathname}?${params}`);
+            }
+        } catch {
+            // Offline: leave what is on screen
+        }
+
+        if (mine === newest) target.removeAttribute('aria-busy');
+    };
+
+    form.addEventListener('submit', (e) => { e.preventDefault(); load(); });
+    form.querySelectorAll('select').forEach((el) => el.addEventListener('change', () => load()));
+    form.querySelectorAll('input[type=search], input[type=text]').forEach((el) =>
+        el.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(load, 250); }));
+
+    // Paging links live inside the part that gets replaced
+    target.addEventListener('click', (e) => {
+        const link = e.target.closest('a[href]');
+        if (!link) return;
+        const page = new URL(link.href, location.origin).searchParams.get('page');
+        if (!page) return;
+        e.preventDefault();
+        load(`&page=${encodeURIComponent(page)}`);
+    });
+});
+
+// Popups built on the browser's own <dialog>, so Esc and focus trapping come for free:
+//   <button data-dialog-open="my-dialog">  …  <dialog id="my-dialog"> … <button data-dialog-close>
+document.querySelectorAll('[data-dialog-open]').forEach((trigger) => {
+    const dialog = document.getElementById(trigger.dataset.dialogOpen);
+    if (!dialog) return;
+    trigger.addEventListener('click', () => dialog.showModal());
+});
+
+document.querySelectorAll('dialog').forEach((dialog) => {
+    dialog.querySelectorAll('[data-dialog-close]').forEach((btn) =>
+        btn.addEventListener('click', () => dialog.close()));
+
+    // Clicking the dark area outside the panel closes it
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) dialog.close();
+    });
+});
+
+// Bring a section into view on load — used so a sign-in error is never left off-screen
+// above the fold on a phone, where the form is the second screen down.
+document.querySelectorAll('[data-scroll-into-view]').forEach((el) => {
+    if (window.innerWidth < 1024) el.scrollIntoView({ block: 'start' });
+});
+
+// Focus a field on wide screens only (see the note on the sign-in email box)
+document.querySelectorAll('[data-focus-on-wide]').forEach((el) => {
+    if (window.innerWidth >= 1024) el.focus();
+});
+
+// The student help assistant in the corner. Answers come from the server
+// (config/assistant.php), so nothing about the system is duplicated here.
+document.querySelectorAll('[data-assistant]').forEach((root) => {
+    const panel = root.querySelector('[data-assistant-panel]');
+    const log = root.querySelector('[data-assistant-log]');
+    const form = root.querySelector('[data-assistant-form]');
+    const input = root.querySelector('[data-assistant-input]');
+    const opener = root.querySelector('[data-assistant-open]');
+    const url = root.dataset.assistantUrl;
+    if (!panel || !log || !form || !input || !opener || !url) return;
+
+    const token = document.querySelector('meta[name=csrf-token]')?.content ?? '';
+
+    const show = (open) => {
+        panel.hidden = !open;
+        opener.hidden = open;
+        if (open) input.focus();
+    };
+
+    const bubble = (text, mine) => {
+        const el = document.createElement('div');
+        el.className = mine
+            ? 'ml-auto w-fit max-w-[85%] rounded-2xl rounded-tr-sm bg-gold-gradient px-4 py-2.5 text-ink-900'
+            : 'w-fit max-w-[90%] rounded-2xl rounded-tl-sm bg-ivory-200 px-4 py-3 text-ink-900';
+        el.textContent = text;
+        log.append(el);
+        log.scrollTop = log.scrollHeight;
+        return el;
+    };
+
+    const ask = async (question) => {
+        bubble(question, true);
+        input.value = '';
+        const thinking = bubble('…', false);
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': token },
+                credentials: 'same-origin',
+                body: JSON.stringify({ question }),
+            });
+            const data = await res.json();
+
+            thinking.textContent = data.answer ?? 'Sorry, something went wrong. Please try again.';
+
+            // A button to the page being talked about, when there is one
+            if (data.url && data.label) {
+                const link = document.createElement('a');
+                link.href = data.url;
+                link.className = 'btn-outline-gold mt-3 px-3 py-1.5 text-xs';
+                link.textContent = data.label;
+                thinking.append(link);
+            }
+        } catch {
+            thinking.textContent = 'I could not reach EduVers just now. Please try again.';
+        }
+
+        log.scrollTop = log.scrollHeight;
+    };
+
+    opener.addEventListener('click', () => show(true));
+    root.querySelector('[data-assistant-close]')?.addEventListener('click', () => show(false));
+    document.addEventListener('keydown', (e) => e.key === 'Escape' && !panel.hidden && show(false));
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const question = input.value.trim();
+        if (question) ask(question);
+    });
+
+    root.querySelectorAll('[data-assistant-example]').forEach((chip) =>
+        chip.addEventListener('click', () => ask(chip.textContent.trim())));
 });

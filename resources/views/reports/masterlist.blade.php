@@ -83,7 +83,7 @@
                         <tr>
                             <td class="w-32 border border-ivory-300 px-3 py-1.5 font-semibold">{{ $offering->subject->code }}</td>
                             <td class="border border-ivory-300 px-3 py-1.5">{{ $offering->subject->name }}</td>
-                            <td class="border border-ivory-300 px-3 py-1.5">{{ $offering->teacher->name }}</td>
+                            <td class="border border-ivory-300 px-3 py-1.5">{{ $offering->teacher?->name ?? 'No teacher yet' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

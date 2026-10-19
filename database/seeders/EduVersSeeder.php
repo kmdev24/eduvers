@@ -39,6 +39,8 @@ class EduVersSeeder extends Seeder
         $g12   = GradeLevel::updateOrCreate(['name' => 'Grade 12'], ['level_type' => LevelType::Shs]);
         $yr1   = GradeLevel::updateOrCreate(['name' => '1st Year'], ['level_type' => LevelType::College]);
         GradeLevel::updateOrCreate(['name' => '2nd Year'], ['level_type' => LevelType::College]);
+        GradeLevel::updateOrCreate(['name' => '3rd Year'], ['level_type' => LevelType::College]);
+        GradeLevel::updateOrCreate(['name' => '4th Year'], ['level_type' => LevelType::College]);
 
         // 3. Tracks / strands (edit to match the school's actual offerings)
         $ict = TrackStrand::updateOrCreate(['name' => 'ICT'],  ['category' => TrackCategory::TechPro]);
@@ -62,8 +64,13 @@ class EduVersSeeder extends Seeder
 
         // 5. Users
         $admin = User::updateOrCreate(['email' => 'admin@eduvers.test'], [
-            'name' => 'EduVers Admin', 'password' => 'password',
+            'name' => 'EduVers Admin', 'password' => 'Admin123',
             'role' => UserRole::Admin,
+        ]);
+
+        $dev = User::updateOrCreate(['email' => 'developer@eduvers.test'], [
+            'name' => 'EduVers Developer', 'password' => 'Developer123',
+            'role' => UserRole::Developer,
         ]);
 
         $teacher = User::updateOrCreate(['email' => 'teacher@eduvers.test'], [
@@ -108,7 +115,7 @@ class EduVersSeeder extends Seeder
                 'academic_term_id' => $prog->academic_term_id,
                 'teacher_id'       => $teacher->id,
                 'passing_score'    => 75,
-                'reveal_answers'   => true,
+                'reveal_answers'   => false,   // answers stay hidden unless a teacher shows them
                 'is_published'     => true,
                 'published_at'     => now(),
             ],

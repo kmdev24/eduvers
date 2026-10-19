@@ -174,7 +174,7 @@ Tests run on a **fresh in-memory SQLite database** (configured in `phpunit.xml`)
 ### Admin
 - [x] Dashboard: institutional banner, totals, section fill levels, faculty by teacher type, current term, recent accounts
 - [x] **Users:** create, edit and delete; filters by role and teacher type; search; initial password with generator; student section assignment with capacity check; can't delete or demote self or the last admin
-- [x] **Sections:** SHS and College sections with strand and capacity; strand–level compatibility check; capacity can't go below enrolment
+- [x] **Sections:** SHS and College sections with strand and capacity; strand–level compatibility check; capacity can't go below enrollment
 - [x] **Subjects:** core or strand-specific, per grade level and term
 - [x] **Teacher assignment:** one teacher per subject per section, with a coverage indicator
 - [x] **Academic Terms:** create a full year (1st–3rd Term) in one step, add single terms, edit, delete, set the current term

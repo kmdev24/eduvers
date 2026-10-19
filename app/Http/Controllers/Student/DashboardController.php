@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicTerm;
 use App\Models\Announcement;
 use App\Models\Lesson;
 use App\Models\Quiz;
@@ -17,8 +18,11 @@ class DashboardController extends Controller
     {
         $student = $request->user()->load(['section.gradeLevel', 'section.trackStrand']);
 
-        // The student's classes (section + approved extra classes), with the assigned teacher
+        $termId = AcademicTerm::getCurrent()?->id;
+
+        // This term's classes (section + approved extra classes), with the assigned teacher
         $classes = $student->studentClasses()
+            ->inTerm($termId)
             ->with(['subject', 'teacher'])
             ->get()
             ->sortBy(fn (SubjectTeacher $offering) => $offering->subject->name)
@@ -34,6 +38,7 @@ class DashboardController extends Controller
         // Published quizzes for the student's classes that they haven't taken yet
         $pendingQuery = Quiz::published()
             ->visibleTo($student)
+            ->when($termId, fn ($q) => $q->where('academic_term_id', $termId))
             ->whereNotIn('id', $submissions->pluck('quiz_id'));
 
         $percentages = $submissions->map(fn (QuizSubmission $s) => $s->percent());

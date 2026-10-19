@@ -70,7 +70,8 @@ class RoleAccessTest extends TestCase
         foreach (UserRole::cases() as $role) {
             $response = $this->actingAs($this->userWithRole($role))->get(route($route));
 
-            if ($role->value === $allowedRole) {
+            // A developer shares the admin area
+            if ($role->value === $allowedRole || ($allowedRole === 'admin' && $role->isAdminLevel())) {
                 $response->assertOk();
             } else {
                 $response->assertForbidden();
@@ -213,7 +214,8 @@ class RoleAccessTest extends TestCase
     private function userWithRole(UserRole $role): User
     {
         return match ($role) {
-            UserRole::Admin => User::factory()->admin()->create(),
+            UserRole::Developer => User::factory()->developer()->create(),
+            UserRole::Admin     => User::factory()->admin()->create(),
             UserRole::Teacher   => User::factory()->teacher()->create(),
             UserRole::Student   => User::factory()->student()->create(),
         };

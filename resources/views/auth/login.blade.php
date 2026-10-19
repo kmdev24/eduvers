@@ -1,8 +1,8 @@
 <x-layouts.guest title="Sign in">
 <div class="grid min-h-full lg:grid-cols-2">
 
-    {{-- ================= Brand panel ================= --}}
-    <section class="relative hidden overflow-hidden bg-ink-gradient lg:flex lg:flex-col lg:justify-between lg:p-14">
+    {{-- ================= Brand panel (the landing screen on phones) ================= --}}
+    <section class="relative flex min-h-screen flex-col justify-between overflow-hidden bg-ink-gradient p-8 sm:p-12 lg:min-h-0 lg:p-14">
         {{-- decorative glow + fine grid --}}
         <div class="pointer-events-none absolute -top-40 -right-40 size-[32rem] rounded-full bg-gold-500/15 blur-3xl"></div>
         <div class="pointer-events-none absolute -bottom-48 -left-24 size-[28rem] rounded-full bg-champagne/10 blur-3xl"></div>
@@ -11,46 +11,58 @@
 
         <x-brand dark class="relative" />
 
-        <div class="relative max-w-lg">
-            <x-logo class="size-24 ring-4" />
+        <div class="relative max-w-lg py-10 lg:py-0">
+            <x-logo class="size-20 ring-4 sm:size-24" />
             <p class="mt-8 text-xs font-semibold uppercase tracking-luxe text-gold-400">Movers Institute of Technology and Education</p>
-            <h1 class="mt-6 font-serif text-5xl font-semibold leading-[1.1] text-ivory">
+            <h1 class="mt-6 font-serif text-4xl font-semibold leading-[1.1] text-ivory sm:text-5xl">
                 Where excellence is
                 <span class="bg-gold-gradient bg-clip-text text-transparent">taught, earned,</span>
                 and measured.
             </h1>
-            <p class="mt-6 flex items-center gap-3 font-serif text-2xl text-gold-300 italic">
+            <p class="mt-6 flex items-center gap-3 font-serif text-xl text-gold-300 italic sm:text-2xl">
                 <span class="h-px w-10 bg-gold-500/60"></span>
                 Transform, Learn, Lead
             </p>
             <p class="mt-6 text-base leading-relaxed text-slate-300">
                 Lessons, quizzes and progress for Senior High School and College, all in one place.
             </p>
+
+            {{-- On phones the form is the next screen down, so this is the way in --}}
+            <a href="#sign-in" class="btn-gold mt-9 w-full py-3.5 text-base lg:hidden">
+                Sign in
+                <x-icon name="arrow-right" class="size-4" />
+            </a>
         </div>
 
         <div class="relative">
             <div class="mb-6 h-px bg-gradient-to-r from-gold-500/50 via-gold-500/20 to-transparent"></div>
-            <dl class="grid grid-cols-3 gap-6">
-                <div>
-                    <dt class="text-[10px] font-semibold uppercase tracking-luxe text-slate-500">Senior High</dt>
-                    <dd class="mt-1 font-serif text-lg text-ivory">3 Terms / Year</dd>
-                </div>
-                <div>
-                    <dt class="text-[10px] font-semibold uppercase tracking-luxe text-slate-500">College</dt>
-                    <dd class="mt-1 font-serif text-lg text-ivory">HRS Bundle</dd>
-                </div>
-                <div>
-                    <dt class="text-[10px] font-semibold uppercase tracking-luxe text-slate-500">Tracks</dt>
-                    <dd class="mt-1 font-serif text-lg text-ivory">TechPro &amp; Academic</dd>
-                </div>
+            {{-- One per line on a phone, three across once there is room --}}
+            <dl class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-6">
+                @foreach ($offerings as $tile)
+                    <div class="flex items-baseline justify-between gap-4 border-b border-white/5 pb-3 sm:block sm:border-0 sm:pb-0">
+                        <dt class="text-[10px] font-semibold uppercase tracking-luxe text-slate-500">{{ $tile['label'] }}</dt>
+                        <dd class="text-right sm:mt-1 sm:text-left">
+                            <button type="button" data-dialog-open="offering-{{ $tile['key'] }}"
+                                    class="group flex items-start gap-1.5 text-left font-serif text-lg text-ivory transition hover:text-gold-300 focus:rounded focus:ring-2 focus:ring-gold-500/50 focus:outline-none"
+                                    aria-haspopup="dialog">
+                                <span class="underline decoration-gold-500/40 decoration-dotted underline-offset-4 group-hover:decoration-gold-400">{{ $tile['value'] }}</span>
+                                <x-icon name="plus" class="mt-1.5 size-3.5 shrink-0 text-gold-500/70 transition group-hover:text-gold-400" />
+                            </button>
+                        </dd>
+                    </div>
+                @endforeach
             </dl>
         </div>
     </section>
 
     {{-- ================= Sign-in form ================= --}}
-    <section class="flex items-center justify-center px-6 py-12 sm:px-12">
+    <section id="sign-in" class="flex min-h-screen items-center justify-center px-6 py-12 sm:px-12 lg:min-h-0"
+             @if ($errors->any() || session('status')) data-scroll-into-view @endif>
         <div class="w-full max-w-md">
             <div class="mb-10 lg:hidden">
+                <a href="#" class="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-ink-900">
+                    <x-icon name="arrow-right" class="size-4 rotate-180" /> Back
+                </a>
                 <x-brand />
                 <p class="mt-3 font-serif text-lg text-champagne-dark italic">Transform, Learn, Lead</p>
             </div>
@@ -73,7 +85,10 @@
                     <label for="email" class="mb-2 block text-sm font-medium text-ink-800">Email address</label>
                     <div class="relative">
                         <x-icon name="envelope" class="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-slate-400" />
-                        <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username"
+                        {{-- Focused by app.js on wide screens only: on a phone this field is the
+                             second screen down, and autofocus would scroll straight past the front
+                             page and open the keyboard. --}}
+                        <input id="email" name="email" type="email" value="{{ old('email') }}" required data-focus-on-wide autocomplete="username"
                                placeholder="you@movers.edu.ph"
                                @class(['input py-3 pl-12', 'border-red-400 focus:border-red-500 focus:ring-red-500/20' => $errors->has('email')])>
                     </div>
@@ -117,4 +132,38 @@
         </div>
     </section>
 </div>
+
+{{-- What the school offers. Outside the brand panel, which is hidden on small screens. --}}
+@foreach ($offerings as $tile)
+    <dialog id="offering-{{ $tile['key'] }}" aria-labelledby="offering-{{ $tile['key'] }}-title"
+            class="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-ivory-300 bg-ivory p-0 text-ink-900 shadow-elevated backdrop:bg-ink-950/70 backdrop:backdrop-blur-sm">
+        <div class="flex items-start justify-between gap-4 border-b border-ivory-300 px-6 py-5">
+            <div>
+                <p class="text-[10px] font-semibold uppercase tracking-luxe text-champagne-dark">{{ $tile['label'] }}</p>
+                <h2 id="offering-{{ $tile['key'] }}-title" class="mt-1 font-serif text-2xl font-semibold">{{ $tile['title'] }}</h2>
+                <p class="mt-1 text-sm text-slate-500">{{ $tile['note'] }}</p>
+            </div>
+            <button type="button" data-dialog-close class="icon-btn shrink-0" aria-label="Close">
+                <x-icon name="x" class="size-5" />
+            </button>
+        </div>
+
+        @if (empty($tile['rows']))
+            <p class="px-6 py-10 text-center text-sm text-slate-500">Nothing to show here yet.</p>
+        @else
+            <ul class="divide-y divide-ivory-200">
+                @foreach ($tile['rows'] as $row)
+                    <li class="flex flex-col gap-1 px-6 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+                        <span class="font-medium">{{ $row['name'] }}</span>
+                        <span class="text-sm text-slate-500 sm:text-right">{{ $row['detail'] }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+
+        <div class="border-t border-ivory-300 bg-ivory-50/60 px-6 py-4 text-right">
+            <button type="button" data-dialog-close class="btn-ghost">Close</button>
+        </div>
+    </dialog>
+@endforeach
 </x-layouts.guest>

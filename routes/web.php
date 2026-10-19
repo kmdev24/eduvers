@@ -14,13 +14,15 @@ use App\Http\Controllers\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => auth()->check()
-    ? redirect()->route('dashboard')
-    : redirect()->route('login'));
-
 /* Guests only ------------------------------------------------------------ */
 Route::middleware('guest')->group(function () {
-    Route::get('/login', [LoginController::class, 'create'])->name('login');
+    // The front page: what the school offers, with signing in on the same page. Signed-in
+    // visitors are sent to their dashboard by the guest middleware, as before.
+    Route::get('/', [LoginController::class, 'create'])->name('login');
+
+    // Bookmarks and older links
+    Route::get('/login', fn () => redirect('/'));
+
     Route::post('/login', [LoginController::class, 'store'])->name('login.store');
 
     // Forgot password (the email link points at password.reset)
@@ -60,14 +62,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications/{notification}/open', [NotificationController::class, 'open'])->whereUuid('notification')->name('notifications.open');
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->whereUuid('notification')->name('notifications.read');
 
-    /* Admin + Teacher ----------------------------------------------- */
-    Route::middleware('role:admin,teacher')->group(function () {
+    /* Admin + Developer + Teacher --------------------------------------- */
+    Route::middleware('role:admin,developer,teacher')->group(function () {
         Route::resource('announcements', AnnouncementController::class)->except(['show', 'create']);
         Route::get('/sections/{section}/master-list', MasterListController::class)->name('sections.masterlist');
     });
 
-    /* Admin -------------------------------------------------------------- */
-    Route::middleware('role:admin')
+    /* Admin + Developer --------------------------------------------------- */
+    Route::middleware('role:admin,developer')
         ->prefix('admin')->name('admin.')
         ->group(function () {
             Route::get('/dashboard', Admin\DashboardController::class)->name('dashboard');
@@ -76,6 +78,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/system', [Admin\SystemCheckController::class, 'index'])->name('system');
             Route::post('/system/test-notification', [Admin\SystemCheckController::class, 'test'])->name('system.test');
 
+            // Developer-only settings (API keys, mail configuration)
+            Route::get('/settings', [Admin\SettingsController::class, 'edit'])->name('settings')->middleware('role:developer');
+            Route::put('/settings', [Admin\SettingsController::class, 'update'])->name('settings.update')->middleware('role:developer');
+
             Route::resource('users', Admin\UserController::class)->except('show');
             Route::resource('sections', Admin\SectionController::class)->except('show');
             Route::resource('subjects', Admin\SubjectController::class)->except('show');
@@ -83,6 +89,14 @@ Route::middleware('auth')->group(function () {
             // Requests to join a class outside the student's section
             Route::get('/enrollments', [Admin\EnrollmentController::class, 'index'])->name('enrollments.index');
             Route::patch('/enrollments/{enrollment}', [Admin\EnrollmentController::class, 'update'])->name('enrollments.update');
+
+            // Put a student straight into a class (no approval needed: the admin is the approver)
+            Route::get('/class-students', [Admin\ClassStudentController::class, 'index'])->name('class-students.index');
+            Route::post('/class-students', [Admin\ClassStudentController::class, 'store'])->name('class-students.store');
+
+            // Enroll students in an SHS strand or a College course (i.e. put them in a section)
+            Route::get('/student-enrollment', [Admin\StudentEnrollmentController::class, 'index'])->name('student-enrollment.index');
+            Route::post('/student-enrollment', [Admin\StudentEnrollmentController::class, 'store'])->name('student-enrollment.store');
 
             Route::get('/subjects/{subject}/teachers', [Admin\SubjectTeacherController::class, 'edit'])->name('subjects.teachers.edit');
             Route::put('/subjects/{subject}/teachers', [Admin\SubjectTeacherController::class, 'update'])->name('subjects.teachers.update');
@@ -93,6 +107,11 @@ Route::middleware('auth')->group(function () {
 
             Route::resource('tracks', Admin\TrackStrandController::class)
                 ->parameters(['tracks' => 'strand'])
+                ->except(['show', 'create']);
+
+            // Grade 11/12 and 1st–4th Year: a section belongs to one of these
+            Route::resource('levels', Admin\GradeLevelController::class)
+                ->parameters(['levels' => 'level'])
                 ->except(['show', 'create']);
         });
 
@@ -137,6 +156,10 @@ Route::middleware('auth')->group(function () {
             Route::post('/quizzes/{quiz}', [Student\QuizController::class, 'submit'])->name('quizzes.submit');
 
             Route::get('/grades', Student\GradeController::class)->name('grades');
+
+            // The help assistant in the corner: how to use EduVers, nothing else
+            Route::post('/assistant', Student\AssistantController::class)
+                ->middleware('throttle:20,1')->name('assistant');
 
             Route::get('/enrollments', [Student\EnrollmentController::class, 'index'])->name('enrollments.index');
             Route::post('/enrollments', [Student\EnrollmentController::class, 'store'])->name('enrollments.store');

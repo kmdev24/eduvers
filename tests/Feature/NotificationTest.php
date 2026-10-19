@@ -58,8 +58,14 @@ class NotificationTest extends TestCase
         $level  = GradeLevel::create(['name' => 'Grade 11', 'level_type' => LevelType::Shs]);
         $strand = TrackStrand::create(['name' => 'ICT', 'category' => TrackCategory::TechPro]);
 
-        $make = fn (string $name) => Section::create(['name' => $name, 'capacity' => 40, 'grade_level_id' => $level->id, 'track_strand_id' => $strand->id]);
-        [$this->sectionA, $this->sectionB, $this->sectionC] = [$make('ICT 11-A'), $make('ICT 11-B'), $make('ICT 11-C')];
+        // Every section of a strand takes that strand's subjects automatically, so the
+        // section that must NOT take this subject has to be a different strand.
+        $otherStrand = TrackStrand::create(['name' => 'ABM', 'category' => TrackCategory::Academic]);
+
+        $make = fn (string $name, ?TrackStrand $in = null) => Section::create([
+            'name' => $name, 'capacity' => 40, 'grade_level_id' => $level->id, 'track_strand_id' => ($in ?? $strand)->id,
+        ]);
+        [$this->sectionA, $this->sectionB, $this->sectionC] = [$make('ICT 11-A'), $make('ICT 11-B'), $make('ABM 11-A', $otherStrand)];
 
         $this->subject = Subject::create([
             'code' => 'ICT-PROG1', 'name' => 'Computer Programming 1',

@@ -46,22 +46,27 @@ class EnrollmentTest extends TestCase
         $level  = GradeLevel::create(['name' => 'Grade 11', 'level_type' => LevelType::Shs]);
         $strand = TrackStrand::create(['name' => 'ICT', 'category' => TrackCategory::TechPro]);
 
+        // A section takes every subject of its own strand automatically, so the section a
+        // student is added *from* has to be another strand of the same year level.
+        $otherStrand = TrackStrand::create(['name' => 'ABM', 'category' => TrackCategory::Academic]);
+
         $this->sectionA = Section::create(['name' => 'ICT 11-A', 'capacity' => 40, 'grade_level_id' => $level->id, 'track_strand_id' => $strand->id]);
-        $this->sectionB = Section::create(['name' => 'ICT 11-B', 'capacity' => 40, 'grade_level_id' => $level->id, 'track_strand_id' => $strand->id]);
+        $this->sectionB = Section::create(['name' => 'ABM 11-A', 'capacity' => 40, 'grade_level_id' => $level->id, 'track_strand_id' => $otherStrand->id]);
 
         $this->subject = Subject::create([
             'code' => 'ICT-PROG1', 'name' => 'Computer Programming 1',
             'grade_level_id' => $level->id, 'track_strand_id' => $strand->id, 'academic_term_id' => $term->id,
         ]);
 
-        $this->teacher   = User::factory()->teacher()->create();
-        $this->admin = User::factory()->admin()->create();
-        $this->subject->assignTeacher($this->teacher, $this->sectionA); // the class is taught in section A only
+        $this->teacher = User::factory()->teacher()->create();
+        $this->admin   = User::factory()->admin()->create();
+        $this->subject->assignTeacher($this->teacher, $this->sectionA); // ICT 11-A's class gets a teacher
     }
 
     public function test_a_teachers_request_only_gives_access_after_an_admin_approves_it(): void
     {
-        $student = User::factory()->student($this->sectionB)->create();
+        // Not yet admitted into a year level or course, so the class is open to them
+        $student = User::factory()->student()->create();
         $class   = $this->teacher->teachingAssignments()->first();
         $lesson  = $this->lesson();
         $quiz    = $this->publishedQuiz();
@@ -97,6 +102,13 @@ class EnrollmentTest extends TestCase
         // Removing the student takes the access away again
         $this->actingAs($this->admin)->patch(route('admin.enrollments.update', $enrollment), ['status' => 'rejected']);
         $this->actingAs($student)->get(route('student.lessons.show', $lesson))->assertForbidden();
+
+        // ... and the teacher can ask again after a rejection
+        $this->actingAs($this->teacher)
+            ->post(route('teacher.enrollments.store'), ['class_id' => $class->id, 'student_id' => $student->id])
+            ->assertSessionHas('status');
+
+        $this->assertSame(EnrollmentStatus::Pending, $enrollment->fresh()->status);
     }
 
     public function test_a_teacher_can_only_add_students_to_their_own_classes(): void
@@ -121,39 +133,136 @@ class EnrollmentTest extends TestCase
         $this->assertDatabaseCount('class_enrollments', 0);
     }
 
-    public function test_students_apply_only_for_classes_of_their_course_and_can_apply_again_after_a_rejection(): void
+    public function test_an_admin_adds_a_student_straight_into_a_class_without_an_approval_step(): void
     {
-        $student = User::factory()->student($this->sectionB)->create();
+        Notification::fake();
+
+        $student = User::factory()->student()->create(['name' => 'Ben Joined']);
         $class   = $this->teacher->teachingAssignments()->first();
+        $lesson  = $this->lesson();
 
-        // A class of another strand is not open to this student
-        $otherStrand  = TrackStrand::create(['name' => 'ABM', 'category' => TrackCategory::Academic]);
-        $otherSection = Section::create(['name' => 'ABM 11-A', 'capacity' => 40, 'grade_level_id' => $this->subject->grade_level_id, 'track_strand_id' => $otherStrand->id]);
-        $otherSubject = Subject::create(['code' => 'ABM-ACC1', 'name' => 'Accounting 1', 'grade_level_id' => $this->subject->grade_level_id, 'track_strand_id' => $otherStrand->id, 'academic_term_id' => $this->subject->academic_term_id]);
-        $otherClass   = $otherSubject->assignTeacher(User::factory()->teacher()->create(), $otherSection);
+        $this->actingAs($student)->get(route('student.lessons.show', $lesson))->assertForbidden();
 
-        // Neither is a class of the same strand taught in another year level
-        $nextLevel   = GradeLevel::create(['name' => 'Grade 12', 'level_type' => LevelType::Shs]);
-        $nextSection = Section::create(['name' => 'ICT 12-A', 'capacity' => 40, 'grade_level_id' => $nextLevel->id, 'track_strand_id' => $this->subject->track_strand_id]);
-        $nextSubject = Subject::create(['code' => 'ICT-PROG2', 'name' => 'Computer Programming 2', 'grade_level_id' => $nextLevel->id, 'track_strand_id' => $this->subject->track_strand_id, 'academic_term_id' => $this->subject->academic_term_id]);
-        $nextClass   = $nextSubject->assignTeacher(User::factory()->teacher()->create(), $nextSection);
-
-        $this->actingAs($student)->get(route('student.enrollments.index'))
-            ->assertOk()->assertSee('Computer Programming 1')
-            ->assertDontSee('Accounting 1')->assertDontSee('Computer Programming 2');
-
-        $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $otherClass->id])->assertNotFound();
-        $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $nextClass->id])->assertNotFound();
-
-        $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $class->id])->assertSessionHas('status');
-        $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $class->id])->assertSessionHas('error'); // already waiting
+        $this->actingAs($this->admin)
+            ->post(route('admin.class-students.store'), ['class_id' => $class->id, 'student_id' => $student->id])
+            ->assertSessionHas('status');
 
         $enrollment = ClassEnrollment::sole();
-        $this->actingAs($this->admin)->patch(route('admin.enrollments.update', $enrollment), ['status' => 'rejected']);
-        $this->actingAs($student)->get(route('student.subjects.show', $this->subject))->assertForbidden();
+        $this->assertSame(EnrollmentStatus::Approved, $enrollment->status, 'approved in one step');
+        $this->assertSame($this->admin->id, $enrollment->decided_by);
 
-        $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $class->id])->assertSessionHas('status');
-        $this->assertSame(EnrollmentStatus::Pending, $enrollment->fresh()->status);
+        $this->actingAs($student)->get(route('student.lessons.show', $lesson))->assertOk();
+        Notification::assertSentTo($student, EnrollmentDecisionNotification::class);
+
+        // Adding the same student again is refused, not duplicated
+        $this->actingAs($this->admin)
+            ->post(route('admin.class-students.store'), ['class_id' => $class->id, 'student_id' => $student->id])
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseCount('class_enrollments', 1);
+    }
+
+    public function test_a_class_only_takes_students_of_its_own_year_level_and_course(): void
+    {
+        $class = $this->teacher->teachingAssignments()->first(); // ICT 11-A, Grade 11 · ICT
+
+        $otherCourse = User::factory()->student($this->sectionB)->create(['name' => 'Abby ABM']); // Grade 11 · ABM
+        $otherLevel  = User::factory()->student(Section::create([
+            'name' => 'ICT 12-A', 'capacity' => 40,
+            'grade_level_id'  => GradeLevel::create(['name' => 'Grade 12', 'level_type' => LevelType::Shs])->id,
+            'track_strand_id' => $this->sectionA->track_strand_id,
+        ]))->create(['name' => 'Cara Senior']);
+
+        $this->actingAs($this->teacher)->get(route('teacher.enrollments.index', ['class' => $class->id]))
+            ->assertOk()
+            ->assertSee('Abby ABM')->assertSee('Not in ICT')
+            ->assertSee('Cara Senior')->assertSee('Not in Grade 11');
+
+        foreach ([$otherCourse, $otherLevel] as $student) {
+            $this->actingAs($this->teacher)
+                ->post(route('teacher.enrollments.store'), ['class_id' => $class->id, 'student_id' => $student->id])
+                ->assertSessionHas('error');
+        }
+
+        $this->assertDatabaseCount('class_enrollments', 0);
+    }
+
+    public function test_the_roster_lists_every_student_with_the_reason_they_cannot_be_added(): void
+    {
+        $inClass  = User::factory()->student($this->sectionA)->create(['name' => 'Ana In-Section']);
+        $addable  = User::factory()->student()->create(['name' => 'Ben Addable']);
+        $class    = $this->teacher->teachingAssignments()->first();
+
+        $nextLevel   = GradeLevel::create(['name' => 'Grade 12', 'level_type' => LevelType::Shs]);
+        $nextSection = Section::create(['name' => 'ICT 12-A', 'capacity' => 40, 'grade_level_id' => $nextLevel->id, 'track_strand_id' => $this->sectionA->track_strand_id]);
+        $senior      = User::factory()->student($nextSection)->create(['name' => 'Cara Senior']);
+
+        // No search term: everyone is listed, with a reason where they cannot be added
+        $this->actingAs($this->teacher)->get(route('teacher.enrollments.index', ['class' => $class->id]))
+            ->assertOk()
+            ->assertSee('Ana In-Section')->assertSee('Already in this class')
+            ->assertSee('Ben Addable')
+            ->assertSee('Cara Senior')->assertSee('Not in Grade 11');
+
+        // The search box narrows the same list
+        $this->actingAs($this->teacher)->get(route('teacher.enrollments.index', ['class' => $class->id, 'q' => 'Ben']))
+            ->assertOk()->assertSee('Ben Addable')->assertDontSee('Ana In-Section');
+
+        // A waiting request replaces the Add button too
+        ClassEnrollment::request($addable, $class, $this->teacher);
+        $this->actingAs($this->teacher)->get(route('teacher.enrollments.index', ['class' => $class->id, 'q' => 'Ben']))
+            ->assertOk()->assertSee('Waiting for approval');
+    }
+
+    public function test_a_students_section_enrolls_them_in_its_subjects_with_no_one_lifting_a_finger(): void
+    {
+        $student = User::factory()->student($this->sectionB)->create(); // ABM 11-A
+
+        // Created after the section, and with no teacher assigned to anything
+        $ownStrand = Subject::create([
+            'code' => 'ABM-ACC1', 'name' => 'Accounting 1', 'grade_level_id' => $this->subject->grade_level_id,
+            'track_strand_id' => $this->sectionB->track_strand_id, 'academic_term_id' => $this->subject->academic_term_id,
+        ]);
+        $core = Subject::create([
+            'code' => 'CORE-PE1', 'name' => 'Physical Education 1', 'grade_level_id' => $this->subject->grade_level_id,
+            'track_strand_id' => null, 'academic_term_id' => $this->subject->academic_term_id,
+        ]);
+
+        $this->assertTrue($student->takesSubject($ownStrand->id), 'their strand’s subject');
+        $this->assertTrue($student->takesSubject($core->id), 'a core subject');
+        $this->assertFalse($student->takesSubject($this->subject->id), 'another strand’s subject');
+
+        $this->actingAs($student)->get(route('student.subjects.index'))
+            ->assertOk()
+            ->assertSee('Accounting 1')
+            ->assertSee('Physical Education 1')
+            ->assertSee('No teacher yet')
+            ->assertDontSee('Computer Programming 1');
+
+        // The core subject reaches the other strand's sections too
+        $this->assertTrue(User::factory()->student($this->sectionA)->create()->takesSubject($core->id));
+    }
+
+    public function test_students_cannot_apply_for_a_class_of_another_strand_or_year_level(): void
+    {
+        $student = User::factory()->student($this->sectionB)->create(); // ABM 11-A
+        $ictClass = $this->teacher->teachingAssignments()->first();     // ICT 11-A
+
+        $nextLevel   = GradeLevel::create(['name' => 'Grade 12', 'level_type' => LevelType::Shs]);
+        $nextSection = Section::create(['name' => 'ABM 12-A', 'capacity' => 40, 'grade_level_id' => $nextLevel->id, 'track_strand_id' => $this->sectionB->track_strand_id]);
+        $nextSubject = Subject::create(['code' => 'ABM-ACC2', 'name' => 'Accounting 2', 'grade_level_id' => $nextLevel->id, 'track_strand_id' => $this->sectionB->track_strand_id, 'academic_term_id' => $this->subject->academic_term_id]);
+        $nextClass   = $nextSubject->assignTeacher(User::factory()->teacher()->create(), $nextSection);
+
+        // Their own course is already in their list, so there is nothing left to apply for
+        $this->actingAs($student)->get(route('student.enrollments.index'))
+            ->assertOk()
+            ->assertDontSee('Computer Programming 1')
+            ->assertDontSee('Accounting 2');
+
+        $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $ictClass->id])->assertNotFound();
+        $this->actingAs($student)->post(route('student.enrollments.store'), ['class_id' => $nextClass->id])->assertNotFound();
+
+        $this->assertDatabaseCount('class_enrollments', 0);
     }
 
     public function test_approved_students_are_notified_about_new_lessons(): void
